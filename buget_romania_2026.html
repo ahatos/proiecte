@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bugetul României 2026 — Structură</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,900;1,300;1,600&family=Overpass+Mono:wght@400;600&family=Overpass:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #f5f2ec;
+  --paper: #faf8f4;
+  --ink:   #1a1810;
+  --ink2:  #3d3a30;
+  --muted: #8c897e;
+  --rule:  #d8d4c8;
+  --red:   #c0392b;
+  --green: #1a6b3a;
+  --amber: #b8670a;
+  --blue:  #1a4a7a;
+  --teal:  #0e5f5f;
+  --acc:   #c0392b;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Overpass', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ── MASTHEAD ── */
+.masthead {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0 48px;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 3px solid var(--acc);
+}
+.masthead-left {
+  border-right: 1px solid rgba(255,255,255,.12);
+  padding: 28px 40px 28px 0;
+  margin-right: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.masthead-flag {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+  margin-bottom: 6px;
+}
+.masthead-title {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(22px, 3.5vw, 42px);
+  font-weight: 900;
+  line-height: 1.0;
+  color: #fff;
+}
+.masthead-title em {
+  font-style: italic;
+  color: #e8c090;
+}
+.masthead-right {
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.kpi-row { display: flex; gap: 32px; flex-wrap: wrap; }
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kpi-lbl {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+.kpi-val {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8c090;
+  line-height: 1;
+}
+.kpi-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,.35);
+  font-weight: 300;
+}
+
+/* ── TABS ── */
+.tab-bar {
+  background: var(--ink);
+  padding: 0 48px;
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.tab {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.35);
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+}
+.tab:hover { color: rgba(255,255,255,.7); }
+.tab.active { color: #e8c090; border-bottom-color: #e8c090; }
+
+/* ── CONTENT ── */
+.content { max-width: 1160px; margin: 0 auto; padding: 36px 48px 0; }
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  background: var(--acc);
+}
+
+/* ── TABLE ── */
+.tbl-wrap {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background: var(--ink);
+  color: rgba(255,255,255,.7);
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: right;
+  font-weight: 400;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+thead th:first-child { text-align: left; }
+thead th:last-child { border-right: none; }
+
+tbody tr {
+  border-bottom: 1px solid var(--rule);
+  transition: background .1s;
+  animation: rowIn .3s both;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(192,57,43,.04); }
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  border-right: 1px solid var(--rule);
+  font-weight: 400;
+}
+td:last-child { border-right: none; }
+
+.td-name {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.td-sub {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 300;
+  margin-top: 1px;
+}
+.cat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.td-num {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+  color: var(--ink2);
+}
+.td-pib {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 11px;
+  text-align: right;
+  color: var(--muted);
+}
+.td-var {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 11px;
+  text-align: right;
+}
+.up   { color: var(--green); }
+.down { color: var(--red); }
+.neut { color: var(--muted); }
+
+/* mini bar */
+.td-bar { width: 100px; padding: 10px 14px; }
+.bar-bg {
+  background: var(--rule);
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+
+/* group header rows */
+tr.group-hdr td {
+  background: #f0ede6;
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 14px;
+  font-weight: 600;
+}
+
+/* total row */
+tr.total-row td {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  border-color: transparent;
+}
+tr.total-row .td-num { color: #e8c090; font-size: 13px; }
+tr.total-row .td-pib { color: rgba(255,255,255,.5); }
+tr.total-row .td-name { color: #fff; font-size: 13px; }
+tr.total-row .td-var { color: rgba(255,255,255,.6); }
+
+/* deficit row */
+tr.deficit-row td {
+  background: rgba(192,57,43,.08);
+  border-top: 2px solid var(--acc);
+}
+tr.deficit-row .td-num { color: var(--red); font-weight: 700; font-size: 13px; }
+tr.deficit-row .td-name { color: var(--red); font-weight: 700; }
+
+/* tab panels */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* note */
+.note-strip {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--amber);
+  padding: 10px 16px;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+.note-strip strong { color: var(--ink2); }
+
+/* legend strip */
+.legend {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.li { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* source */
+.source-line {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 4px;
+  padding: 0 2px;
+}
+
+@media (max-width: 768px) {
+  .masthead, .tab-bar, .content { padding-left: 16px; padding-right: 16px; }
+  .masthead { flex-direction: column; }
+  .masthead-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,.12); padding: 20px 0; margin-right: 0; margin-bottom: 16px; }
+  .td-bar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="masthead-left">
+    <div class="masthead-flag">Ministerul Finanțelor · Publicat 10 mar. 2026</div>
+    <div class="masthead-title">Bugetul<br><em>României</em><br>2026</div>
+  </div>
+  <div class="masthead-right">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-lbl">PIB estimat</div>
+        <div class="kpi-val">2.045 mrd lei</div>
+        <div class="kpi-sub">creștere reală 1% · inflație 6,5%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Deficit bugetar</div>
+        <div class="kpi-val">6,2% PIB</div>
+        <div class="kpi-sub">127,7 mrd lei · ESA: 6,0%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Cheltuieli totale (BGC)</div>
+        <div class="kpi-val">864,3 mrd lei</div>
+        <div class="kpi-sub">42,3% din PIB</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Venituri totale (BGC)</div>
+        <div class="kpi-val">736,5 mrd lei</div>
+        <div class="kpi-sub">36,0% din PIB</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Investiții publice</div>
+        <div class="kpi-val">163,8 mrd lei</div>
+        <div class="kpi-sub">8,0% PIB · record</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Datorie publică</div>
+        <div class="kpi-val">62,5% PIB</div>
+        <div class="kpi-sub">plafon maxim 2026</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('venituri')">Venituri</div>
+  <div class="tab" onclick="switchTab('cheltuieli')">Cheltuieli funcționale</div>
+  <div class="tab" onclick="switchTab('ministere')">Alocări pe ministere</div>
+  <div class="tab" onclick="switchTab('investitii')">Investiții & fonduri UE</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ══ TAB 1: VENITURI ══ -->
+<div class="panel active" id="panel-venituri">
+  <br>
+  <div class="section-title">Structura veniturilor — Buget General Consolidat 2026</div>
+  <div class="legend">
+    <div class="li"><div class="ld" style="background:#1a4a7a"></div>Venituri fiscale</div>
+    <div class="li"><div class="ld" style="background:#0e5f5f"></div>Contribuții sociale</div>
+    <div class="li"><div class="ld" style="background:#5a3e8a"></div>Fonduri europene</div>
+    <div class="li"><div class="ld" style="background:#7a5a1a"></div>Alte venituri</div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:34%">Categorie</th>
+          <th>Mrd lei</th>
+          <th>% PIB</th>
+          <th>vs. 2025</th>
+          <th class="td-bar">Pondere</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-hdr"><td colspan="5">Venituri curente</td></tr>
+        <tr style="animation-delay:.05s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a4a7a"></span>Venituri fiscale<div class="td-sub">impozite directe + indirecte</div></div></td>
+          <td class="td-num">357,6</td>
+          <td class="td-pib">17,5%</td>
+          <td class="td-var up">+34,6 ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:48%;background:#1a4a7a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.08s">
+          <td><div class="td-name" style="padding-left:18px">— din care: TVA</div></td>
+          <td class="td-num">~155</td>
+          <td class="td-pib">~7,6%</td>
+          <td class="td-var up">↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:21%;background:#2a5a9a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.10s">
+          <td><div class="td-name" style="padding-left:18px">— din care: impozit venit + profit</div></td>
+          <td class="td-num">~120</td>
+          <td class="td-pib">~5,9%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:16%;background:#2a5a9a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.12s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#0e5f5f"></span>Contribuții de asigurări sociale</div></td>
+          <td class="td-num">226,4</td>
+          <td class="td-pib">11,1%</td>
+          <td class="td-var up">+18,4 ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:31%;background:#0e5f5f"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.14s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#7a5a1a"></span>Alte venituri curente<div class="td-sub">taxe, dividende, amenzi, jocuri de noroc</div></div></td>
+          <td class="td-num">~52,3</td>
+          <td class="td-pib">~2,6%</td>
+          <td class="td-var up">↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:7%;background:#7a5a1a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Venituri din capital & finanțări externe</td></tr>
+        <tr style="animation-delay:.16s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#5a3e8a"></span>Fonduri europene nerambursabile post-aderare<div class="td-sub">FC, FEDER, FSE, FEADR etc.</div></div></td>
+          <td class="td-num">51,3</td>
+          <td class="td-pib">2,5%</td>
+          <td class="td-var up">+42% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:7%;background:#5a3e8a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.18s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#7a3e8a"></span>PNRR — granturi<div class="td-sub">MRR, componente investiții</div></div></td>
+          <td class="td-num">41,4</td>
+          <td class="td-pib">2,0%</td>
+          <td class="td-var up">+43% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:6%;background:#7a3e8a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.20s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#8a3e5a"></span>PNRR — împrumuturi</div></td>
+          <td class="td-num">12,0</td>
+          <td class="td-pib">0,6%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:2%;background:#8a3e5a"></div></div></td>
+        </tr>
+        <tr class="total-row">
+          <td><div class="td-name">TOTAL VENITURI BGC</div></td>
+          <td class="td-num">736,5</td>
+          <td class="td-pib">36,0%</td>
+          <td class="td-var" style="color:rgba(255,255,255,.5)">+34,7% PIB (2025)</td>
+          <td class="td-bar"></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Venituri buget de stat (subset)</td></tr>
+        <tr style="animation-delay:.22s">
+          <td><div class="td-name">Buget de stat — venituri<div class="td-sub">fără asigurări sociale și locale</div></div></td>
+          <td class="td-num">391,7</td>
+          <td class="td-pib">19,1%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:53%;background:#4a4a4a"></div></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="source-line">Surse: MFP — Proiect Lege Buget 2026, publicat 10 mar. 2026; Profit.ro, HotNews.ro, Europa Liberă</div>
+</div>
+
+<!-- ══ TAB 2: CHELTUIELI FUNCȚIONALE ══ -->
+<div class="panel" id="panel-cheltuieli">
+  <br>
+  <div class="note-strip">
+    <strong>Notă de lectură:</strong> Cheltuielile sunt prezentate după clasificația funcțională (destinație economico-socială), nu după minister. Valorile ca % PIB permit compararea cu standardele europene.
+  </div>
+  <div class="section-title">Cheltuieli după destinație — BGC 2026</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:34%">Funcție bugetară</th>
+          <th>Mrd lei</th>
+          <th>% PIB</th>
+          <th>% PIB 2025</th>
+          <th>Δ pp PIB</th>
+          <th class="td-bar">Pondere</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="animation-delay:.04s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#7a1a1a"></span>Protecție socială<div class="td-sub">pensii CNPP + prestații sociale</div></div></td>
+          <td class="td-num">~370</td>
+          <td class="td-pib">18,1%</td>
+          <td class="td-pib">~19,6%</td>
+          <td class="td-var up">−1,5pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:85%;background:#7a1a1a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.06s">
+          <td><div class="td-name" style="padding-left:18px">— din care: pensii (CNPP)</div></td>
+          <td class="td-num">158,0</td>
+          <td class="td-pib">7,7%</td>
+          <td class="td-pib">—</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:37%;background:#9a2a2a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.07s">
+          <td><div class="td-name" style="padding-left:18px">— din care: asistență socială (Min. Muncii)</div></td>
+          <td class="td-num">~250</td>
+          <td class="td-pib">12,2%</td>
+          <td class="td-pib">13,1%</td>
+          <td class="td-var up">−0,9pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:58%;background:#9a3a3a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.09s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a4a1a"></span>Cheltuieli de personal (total stat)<div class="td-sub">salarii funcționari, magistrați, militari, educație</div></div></td>
+          <td class="td-num">~167,7</td>
+          <td class="td-pib">8,2%</td>
+          <td class="td-pib">8,8%</td>
+          <td class="td-var up">−0,6pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:39%;background:#1a4a1a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.11s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a3a6a"></span>Sănătate<div class="td-sub">CNAS + Min. Sănătate</div></div></td>
+          <td class="td-num">~105,4</td>
+          <td class="td-pib">~5,2%</td>
+          <td class="td-pib">~5,5%</td>
+          <td class="td-var up">−0,3pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:25%;background:#1a3a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.12s">
+          <td><div class="td-name" style="padding-left:18px">— din care: CNAS</div></td>
+          <td class="td-num">82,6</td>
+          <td class="td-pib">4,0%</td>
+          <td class="td-pib">—</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:19%;background:#2a4a7a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.13s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#5a3a0a"></span>Educație<div class="td-sub">MEC + capitolul Învățământ</div></div></td>
+          <td class="td-num">~62,0</td>
+          <td class="td-pib">3,0%</td>
+          <td class="td-pib">3,1%</td>
+          <td class="td-var down">−0,1pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:15%;background:#5a3a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.15s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a0a0a"></span>Apărare națională<div class="td-sub">MAN; credite angajament: 112 mrd lei</div></div></td>
+          <td class="td-num">49,3</td>
+          <td class="td-pib">2,4%</td>
+          <td class="td-pib">~2,1%</td>
+          <td class="td-var down">+0,3pp ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:12%;background:#4a0a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.17s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a1a6a"></span>Transport și infrastructură<div class="td-sub">MTI; credite angajament: 109,9 mrd lei</div></div></td>
+          <td class="td-num">42,0</td>
+          <td class="td-pib">2,1%</td>
+          <td class="td-pib">2,2%</td>
+          <td class="td-var up">−0,1pp ↓</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:10%;background:#3a1a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.18s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#c0392b"></span>Dobânzi datorie publică<div class="td-sub">cost finanțare deficit acumulat</div></div></td>
+          <td class="td-num">60,8</td>
+          <td class="td-pib">3,0%</td>
+          <td class="td-pib">2,6%</td>
+          <td class="td-var down">+0,4pp ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:14%;background:#c0392b"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.19s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#0a4a4a"></span>Ordine publică & siguranță națională<div class="td-sub">MAI + servicii informații</div></div></td>
+          <td class="td-num">~41,2</td>
+          <td class="td-pib">~2,0%</td>
+          <td class="td-pib">~1,9%</td>
+          <td class="td-var down">+0,1pp ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:10%;background:#0a4a4a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.20s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#2a6a2a"></span>Agricultură<div class="td-sub">MADR; credite angajament: 43,7 mrd (+65%)</div></div></td>
+          <td class="td-num">27,7</td>
+          <td class="td-pib">1,4%</td>
+          <td class="td-pib">1,3%</td>
+          <td class="td-var down">+0,1pp ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:6%;background:#2a6a2a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.21s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#6a4a0a"></span>Energie<div class="td-sub">Min. Energiei; +268% față de 2025</div></div></td>
+          <td class="td-num">19,7</td>
+          <td class="td-pib">1,0%</td>
+          <td class="td-pib">0,3%</td>
+          <td class="td-var down">+0,7pp ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:5%;background:#6a4a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.22s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a6a6a"></span>Alte cheltuieli<div class="td-sub">justiție, administrație, autorități autonome etc.</div></div></td>
+          <td class="td-num">~58,4</td>
+          <td class="td-pib">~2,9%</td>
+          <td class="td-pib">—</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:14%;background:#1a6a6a"></div></div></td>
+        </tr>
+        <tr class="total-row">
+          <td><div class="td-name">TOTAL CHELTUIELI BGC</div></td>
+          <td class="td-num">864,3</td>
+          <td class="td-pib">42,3%</td>
+          <td class="td-pib">42,3% (2025)</td>
+          <td class="td-var" style="color:rgba(255,255,255,.5)">stabil</td>
+          <td class="td-bar"></td>
+        </tr>
+        <tr class="deficit-row">
+          <td><div class="td-name">DEFICIT BGC (cash)</div></td>
+          <td class="td-num">127,7</td>
+          <td class="td-pib">6,2%</td>
+          <td class="td-pib">7,6% (2025)</td>
+          <td class="td-var down">−1,4pp ↓</td>
+          <td class="td-bar"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="source-line">* Valorile marcate cu ~ sunt estimate/calculate pe baza datelor publicate. Surse: MFP, HotNews, Profit.ro, Edupedu, Europa Liberă — 10-11 mar. 2026.</div>
+</div>
+
+<!-- ══ TAB 3: MINISTERE ══ -->
+<div class="panel" id="panel-ministere">
+  <br>
+  <div class="note-strip">
+    <strong>Credite bugetare</strong> = plafon maxim de plăți efective în 2026. <strong>Credite de angajament</strong> = angajamente multianuale (contracte, proiecte cu finanțare pe mai mulți ani). Variația este față de execuția preliminată 2025.
+  </div>
+  <div class="section-title">Alocări pe ordonatori principali de credite — Buget de Stat 2026</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36%">Instituție / Minister</th>
+          <th>Credite bugetare<br><span style="font-size:8px;opacity:.6">(mrd lei)</span></th>
+          <th>Var. față<br>de 2025</th>
+          <th>Credite angajament<br><span style="font-size:8px;opacity:.6">(mrd lei)</span></th>
+          <th class="td-bar">Pondere CB</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-hdr"><td colspan="5">Protecție socială & sănătate</td></tr>
+        <tr style="animation-delay:.03s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#7a1a1a"></span>Casa Națională de Pensii Publice<div class="td-sub">cea mai mare alocare din buget</div></div></td>
+          <td class="td-num">158,0</td>
+          <td class="td-var neut">~stabil</td>
+          <td class="td-num">158,0</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:100%;background:#7a1a1a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.05s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#9a2a2a"></span>Ministerul Muncii, Familiei, Tineretului<div class="td-sub">asistență socială, indemnizații</div></div></td>
+          <td class="td-num">91,8</td>
+          <td class="td-var up">−7,5%</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:58%;background:#9a2a2a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.06s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a3a6a"></span>Casa Națională de Asigurări de Sănătate<div class="td-sub">medicamente, spitale, ambulatoriu</div></div></td>
+          <td class="td-num">82,6</td>
+          <td class="td-var neut">~stabil</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:52%;background:#1a3a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.07s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#2a4a7a"></span>Ministerul Sănătății<div class="td-sub">investiții spitalicești, programe naționale</div></div></td>
+          <td class="td-num">22,8</td>
+          <td class="td-var down">−13% ↓</td>
+          <td class="td-num">31,1</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:14%;background:#2a4a7a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Educație, cercetare, cultură</td></tr>
+        <tr style="animation-delay:.09s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#5a3a0a"></span>Ministerul Educației și Cercetării<div class="td-sub">3,03% PIB · sub media UE de 4,6%</div></div></td>
+          <td class="td-num">64,7</td>
+          <td class="td-var up">+5,78% ↑</td>
+          <td class="td-num">65,2</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:41%;background:#5a3a0a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Apărare, ordine publică, siguranță</td></tr>
+        <tr style="animation-delay:.11s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a0a0a"></span>Ministerul Apărării Naționale<div class="td-sub">~2,4% PIB; credite angajament = 5 ani investiții</div></div></td>
+          <td class="td-num">49,3</td>
+          <td class="td-var down">+16% ↑</td>
+          <td class="td-num">112,0</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:31%;background:#4a0a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.12s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#0a4a4a"></span>Ministerul Afacerilor Interne</div></td>
+          <td class="td-num">35,4</td>
+          <td class="td-var down">+3,8% ↑</td>
+          <td class="td-num">36,2</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:22%;background:#0a4a4a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.13s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#2a0a0a"></span>Serviciul Român de Informații</div></td>
+          <td class="td-num">5,2</td>
+          <td class="td-var down">+13,8% ↑</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:3%;background:#2a0a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.135s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a1a0a"></span>Serviciul de Informații Externe</div></td>
+          <td class="td-num">0,81</td>
+          <td class="td-var neut">~stabil</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:1%;background:#3a1a0a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Infrastructură, economie, mediu</td></tr>
+        <tr style="animation-delay:.14s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a1a6a"></span>Ministerul Transporturilor și Infrastructurii<div class="td-sub">credite angajament: 109,9 mrd lei</div></div></td>
+          <td class="td-num">42,0</td>
+          <td class="td-var up">−3,7% ↓</td>
+          <td class="td-num">109,9</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:27%;background:#3a1a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.15s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#6a4a0a"></span>Ministerul Energiei<div class="td-sub">+268% față de 2025 — tranziție energetică + investiții</div></div></td>
+          <td class="td-num">19,7</td>
+          <td class="td-var down">+268% ↑↑</td>
+          <td class="td-num">10,2</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:12%;background:#6a4a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.16s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a5a3a"></span>Ministerul Agriculturii și Dezvoltării Rurale</div></td>
+          <td class="td-num">27,7</td>
+          <td class="td-var down">+5% ↑</td>
+          <td class="td-num">43,7</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:18%;background:#1a5a3a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.17s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a4a5a"></span>Ministerul Dezvoltării, Lucrărilor Publice</div></td>
+          <td class="td-num">22,8</td>
+          <td class="td-var up">−20% ↓</td>
+          <td class="td-num">39,2</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:14%;background:#1a4a5a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.175s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a5a1a"></span>Min. Investițiilor și Proiectelor Europene<div class="td-sub">+72,3% față de 2025</div></div></td>
+          <td class="td-num">12,6</td>
+          <td class="td-var down">+72,3% ↑</td>
+          <td class="td-num">17,8</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:8%;background:#3a5a1a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.18s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a4a1a"></span>Min. Economiei, Digitalizării, Antreprenoriatului</div></td>
+          <td class="td-num">3,7</td>
+          <td class="td-var down">+59,4% ↑</td>
+          <td class="td-num">3,9</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:2%;background:#4a4a1a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Justiție, administrație, autorități</td></tr>
+        <tr style="animation-delay:.19s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#2a2a6a"></span>Înalta Curte de Casație și Justiție<div class="td-sub">+49%; plata drepturilor salariale câștigate în instanță</div></div></td>
+          <td class="td-num">5,0</td>
+          <td class="td-var down">+49% ↑</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:3%;background:#2a2a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.20s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a3a7a"></span>Ministerul Public (Parchet General)</div></td>
+          <td class="td-num">2,8</td>
+          <td class="td-var down">+65% ↑</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:2%;background:#3a3a7a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.205s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#5a5a5a"></span>Secretariatul General al Guvernului</div></td>
+          <td class="td-num">2,6</td>
+          <td class="td-var neut">—</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:2%;background:#5a5a5a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.21s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a3a3a"></span>Administrația Prezidențială</div></td>
+          <td class="td-num">0,10</td>
+          <td class="td-var neut">—</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:0.1%;background:#3a3a3a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.215s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a4a4a"></span>Camera Deputaților</div></td>
+          <td class="td-num">0,55</td>
+          <td class="td-var neut">—</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:0.4%;background:#4a4a4a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.22s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a4a4a"></span>Senatul României</div></td>
+          <td class="td-num">0,28</td>
+          <td class="td-var neut">+1,1%</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:0.2%;background:#4a4a4a"></div></div></td>
+        </tr>
+        <tr class="total-row">
+          <td><div class="td-name">TOTAL BUGET DE STAT — cheltuieli</div></td>
+          <td class="td-num">527,4</td>
+          <td class="td-var" style="color:rgba(255,255,255,.5)">25,8% PIB</td>
+          <td class="td-num">712+</td>
+          <td class="td-bar"></td>
+        </tr>
+        <tr class="deficit-row">
+          <td><div class="td-name">DEFICIT buget de stat</div></td>
+          <td class="td-num">135,7</td>
+          <td class="td-var down">6,6% PIB</td>
+          <td class="td-num">—</td>
+          <td class="td-bar"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="source-line">Surse: MFP proiect buget 2026; HotNews, Ziarul Național, Profit.ro, Digi24, Edupedu — 10-11 mar. 2026. ↑ roșu = creștere cheltuieli; ↑ verde = scădere (economisire).</div>
+</div>
+
+<!-- ══ TAB 4: INVESTIȚII ══ -->
+<div class="panel" id="panel-investitii">
+  <br>
+  <div class="section-title">Investiții publice și fonduri europene — 2026 (record)</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38%">Componentă</th>
+          <th>Mrd lei</th>
+          <th>% PIB</th>
+          <th>vs. 2025</th>
+          <th class="td-bar">Pondere din total investiții</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-hdr"><td colspan="5">Total investiții publice — structură</td></tr>
+        <tr style="animation-delay:.04s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#5a3e8a"></span>Fonduri europene nerambursabile<div class="td-sub">FC, FEDER, FSE, FEADR — ~2/3 din total investiții</div></div></td>
+          <td class="td-num">~110+</td>
+          <td class="td-pib">~5,4%</td>
+          <td class="td-var down">+~40% ↑↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:67%;background:#5a3e8a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.06s">
+          <td><div class="td-name" style="padding-left:18px">— din care: fonduri post-aderare (FC, FEDER etc.)</div></td>
+          <td class="td-num">51,3</td>
+          <td class="td-pib">2,5%</td>
+          <td class="td-var down">+42% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:31%;background:#6a4e9a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.08s">
+          <td><div class="td-name" style="padding-left:18px">— din care: PNRR granturi</div></td>
+          <td class="td-num">41,4</td>
+          <td class="td-pib">2,0%</td>
+          <td class="td-var down">+43% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:25%;background:#7a5eaa"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.10s">
+          <td><div class="td-name" style="padding-left:18px">— din care: PNRR împrumuturi</div></td>
+          <td class="td-num">12,0</td>
+          <td class="td-pib">0,6%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:7%;background:#8a6eba"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.12s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#1a4a7a"></span>Investiții din buget național<div class="td-sub">cofinanțare proiecte UE + investiții proprii</div></div></td>
+          <td class="td-num">~53,8</td>
+          <td class="td-pib">~2,6%</td>
+          <td class="td-var down">+~10% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:33%;background:#1a4a7a"></div></div></td>
+        </tr>
+        <tr class="total-row">
+          <td><div class="td-name">TOTAL INVESTIȚII — record absolut</div></td>
+          <td class="td-num">163,8</td>
+          <td class="td-pib">8,0%</td>
+          <td class="td-var" style="color:#e8c090">+25,6 mrd lei ↑</td>
+          <td class="td-bar"></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Alocări pe destinații investiționale principale</td></tr>
+        <tr style="animation-delay:.14s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#3a1a6a"></span>Infrastructură transport<div class="td-sub">autostrăzi, căi ferate, drumuri naționale</div></div></td>
+          <td class="td-num">~55+</td>
+          <td class="td-pib">~2,7%</td>
+          <td class="td-var neut">incl. credite angajament 109,9 mrd</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:34%;background:#3a1a6a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.15s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#0a5a4a"></span>Autorități locale<div class="td-sub">proiecte locale și regionale — ~2/3 din fonduri UE</div></div></td>
+          <td class="td-num">86,4</td>
+          <td class="td-pib">4,2%</td>
+          <td class="td-var down">+7,4 mrd ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:53%;background:#0a5a4a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.16s">
+          <td><div class="td-name" style="padding-left:18px">— TVA redistribuită local<div class="td-sub">județe, municipii, comune, drumuri locale</div></div></td>
+          <td class="td-num">27,7</td>
+          <td class="td-pib">1,4%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:17%;background:#1a6a5a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.17s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#4a0a0a"></span>Apărare — investiții și dotări<div class="td-sub">credite angajament = 112 mrd lei (programe multianuale)</div></div></td>
+          <td class="td-num">~20+</td>
+          <td class="td-pib">~1,0%</td>
+          <td class="td-var down">+16% ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:12%;background:#4a0a0a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.18s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#2a4a2a"></span>Infrastructură spitalicească & PNRR sănătate<div class="td-sub">termen limită finalizare proiecte: aug. 2026</div></div></td>
+          <td class="td-num">~15</td>
+          <td class="td-pib">~0,7%</td>
+          <td class="td-var neut">—</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:9%;background:#2a4a2a"></div></div></td>
+        </tr>
+        <tr style="animation-delay:.19s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#6a4a0a"></span>Energie, eficiență energetică, mobilitate urbană<div class="td-sub">tranziție verde; Min. Energiei +268%</div></div></td>
+          <td class="td-num">~18</td>
+          <td class="td-pib">~0,9%</td>
+          <td class="td-var down">+268% ↑↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:11%;background:#6a4a0a"></div></div></td>
+        </tr>
+        <tr class="group-hdr"><td colspan="5">Context: restanțe PNRR de atras până în 2026</td></tr>
+        <tr style="animation-delay:.20s">
+          <td><div class="td-name"><span class="cat-dot" style="background:#c0392b"></span>Fonduri PNRR neîncasate de la CE<div class="td-sub">termen critic: finalizare investiții aug. 2026</div></div></td>
+          <td class="td-num">>10 mrd €</td>
+          <td class="td-pib">~5% PIB</td>
+          <td class="td-var down">risc pierdere ↑</td>
+          <td class="td-bar"><div class="bar-bg"><div class="bar-fill" style="width:30%;background:#c0392b66"></div></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-strip" style="margin-top:16px">
+    <strong>2026 = an de sprint pentru fonduri europene.</strong> Bugetul tratează 2026 ca un an de maximizare a absorbției — ordonatorii de credite pot realoca rapid între capitole pentru a nu pierde fonduri europene. Autostrada Moldovei, spitale regionale, proiecte de eficiență energetică și infrastructură de mobilitate urbană sunt principalele proiecte cu termen scadent august 2026.
+  </div>
+  <div class="source-line">Surse: MFP proiect buget 2026; HotNews, Profit.ro, Europa Liberă — 10-11 mar. 2026. Valorile marcate cu ~ sunt estimate pe baza datelor parțiale disponibile.</div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  // re-trigger row animations
+  document.querySelectorAll('#panel-' + name + ' tbody tr').forEach((r, i) => {
+    r.style.animation = 'none';
+    r.offsetHeight;
+    r.style.animation = '';
+    r.style.animationDelay = (i * 0.025) + 's';
+  });
+}
+</script>
+</body>
+</html>

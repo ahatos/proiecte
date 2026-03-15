@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rata de finalizare a studiilor superioare</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --border: #2a2a38;
+    --accent1: #f5c842;
+    --accent2: #e8604c;
+    --accent3: #4cb8c4;
+    --text: #e8e8f0;
+    --muted: #7a7a96;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header { margin-bottom: 40px; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em;
+    color: var(--accent1); text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900; line-height: 1.1;
+    color: var(--text);
+  }
+  h1 span { color: var(--accent1); }
+
+  .subtitle {
+    margin-top: 12px; font-size: 14px; color: var(--muted);
+    font-weight: 300; max-width: 600px; line-height: 1.6;
+  }
+
+  /* ── HIGHLIGHT ── */
+  .highlight-section { margin-bottom: 32px; }
+
+  .highlight-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em;
+    color: var(--accent2); text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .highlight-header::after {
+    content: ''; flex: 1; height: 1px;
+    background: rgba(232,96,76,0.25);
+  }
+
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(232,96,76,0.07), rgba(232,96,76,0.02));
+    border: 1px solid rgba(232,96,76,0.25);
+    border-radius: 12px; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .stat-block {
+    text-align: center; padding: 20px 16px;
+    border-right: 1px solid rgba(232,96,76,0.15);
+  }
+  .stat-block:last-child { border-right: none; }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 900;
+    color: var(--accent2); line-height: 1;
+  }
+
+  .stat-metric {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em;
+    color: var(--text); text-transform: uppercase;
+    margin-top: 8px; font-weight: 500;
+  }
+
+  .stat-what {
+    font-size: 11px; color: var(--muted);
+    margin-top: 4px; line-height: 1.4;
+    font-style: italic;
+  }
+
+  .stat-context {
+    font-size: 11px; color: rgba(245,200,66,0.75);
+    margin-top: 5px; line-height: 1.4;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px;
+    width: fit-content; margin-bottom: 28px; flex-wrap: wrap;
+  }
+
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em;
+    padding: 8px 16px; border-radius: 5px;
+    border: none; cursor: pointer;
+    background: transparent; color: var(--muted);
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  .tab.active { background: var(--accent1); color: #0e0e12; font-weight: 500; }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 32px;
+    margin-bottom: 24px; position: relative; overflow: hidden;
+  }
+  .chart-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent3));
+  }
+
+  .chart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; margin-bottom: 4px;
+  }
+  .chart-desc {
+    font-size: 11px; color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 24px;
+  }
+
+  .chart-wrap { position: relative; height: 420px; }
+
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── MAP ── */
+  .map-metric-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .map-mtab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em;
+    padding: 5px 12px; border-radius: 4px;
+    border: 1px solid var(--border); cursor: pointer;
+    background: transparent; color: var(--muted);
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  .map-mtab.active {
+    background: rgba(76,184,196,0.15);
+    border-color: var(--accent3); color: var(--accent3);
+  }
+
+  .map-wrap {
+    position: relative;
+    width: 100%; height: 460px;
+  }
+  .map-wrap svg { width: 100%; height: 100%; }
+
+  .map-tooltip {
+    position: absolute;
+    background: #16161d;
+    border: 1px solid #2a2a38;
+    border-radius: 8px;
+    padding: 10px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    min-width: 165px;
+    z-index: 10;
+  }
+  .map-tooltip .tt-country {
+    font-size: 12px; font-weight: 500;
+    color: var(--accent1); margin-bottom: 7px;
+  }
+  .map-tooltip .tt-row {
+    display: flex; justify-content: space-between;
+    gap: 14px; color: var(--muted); margin-top: 3px;
+  }
+  .map-tooltip .tt-row span:last-child { color: var(--text); font-weight: 500; }
+  .map-tooltip .tt-row.highlight span:last-child { color: var(--accent1); }
+
+  .map-legend {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 16px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--muted); flex-wrap: wrap;
+  }
+  .map-legend-bar { height: 10px; width: 180px; border-radius: 3px; }
+
+  .view-hidden { display: none; }
+
+  footer {
+    margin-top: 32px; font-size: 11px; color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    border-top: 1px solid var(--border); padding-top: 16px;
+    line-height: 1.7;
+  }
+
+  @media(max-width:600px) {
+    .stat-block { border-right:none; border-bottom:1px solid rgba(232,96,76,0.15); }
+    .stat-block:last-child { border-bottom:none; }
+    .chart-card { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="container">
+
+  <header>
+    <div class="eyebrow">Educație terțiară · Sursă: OECD 2023</div>
+    <h1>Finalizarea studiilor<br><span>superioare în Europa</span></h1>
+    <p class="subtitle">Rata de abandon și finalizare a programelor de licență, comparație între țări UE și OCDE — cohorte de studenți cu normă întreagă.</p>
+  </header>
+
+  <!-- ── SPOTLIGHT ── -->
+  <div class="highlight-section">
+    <div class="highlight-header">Spotlight · România față de media UE25</div>
+    <div class="highlight-box">
+      <div class="stat-block">
+        <div class="stat-value">62%</div>
+        <div class="stat-metric">Finalizare la termen</div>
+        <div class="stat-what">% studenți care termină<br>în durata oficială a programului</div>
+        <div class="stat-context">vs. 44% medie UE25 · locul #1</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value">21%</div>
+        <div class="stat-metric">Abandon după an 1</div>
+        <div class="stat-what">% care nu continuă studiile<br>după primul an universitar</div>
+        <div class="stat-context">vs. 13% medie UE25 · peste medie</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value">66%</div>
+        <div class="stat-metric">Finalizare la +3 ani</div>
+        <div class="stat-what">% care finalizează cu cel mult<br>3 ani întârziere față de termen</div>
+        <div class="stat-context">vs. 68% medie UE25 · aproape identic</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value">+4pp</div>
+        <div class="stat-metric">Decalaj termen→+3ani</div>
+        <div class="stat-what">Diferența între finalizarea la termen<br>și finalizarea cu 3 ani în plus</div>
+        <div class="stat-context">vs. +24pp medie UE25 · cel mai mic</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs">
+    <button class="tab active" onclick="showView('completion')">Finalizare</button>
+    <button class="tab" onclick="showView('dropout')">Abandon</button>
+    <button class="tab" onclick="showView('gap')">Decalaj</button>
+    <button class="tab" onclick="showView('map')">Hartă</button>
+  </div>
+
+  <!-- View 1 -->
+  <div id="view-completion" class="chart-card">
+    <div class="chart-title">Rata de finalizare pe orizont de timp</div>
+    <div class="chart-desc">% studenți care finalizează licența · la termen · +1 an · +3 ani · sortat după finalizare la termen ↓</div>
+    <div class="chart-wrap"><canvas id="completionChart"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#f5c842"></div>La termen</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4cb8c4"></div>+1 an</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>+3 ani</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8604c"></div>România (evidențiat)</div>
+    </div>
+  </div>
+
+  <!-- View 2 -->
+  <div id="view-dropout" class="chart-card view-hidden">
+    <div class="chart-title">Abandon după primul an</div>
+    <div class="chart-desc">% studenți care nu continuă studiile după anul 1 · sortat descrescător</div>
+    <div class="chart-wrap"><canvas id="dropoutChart"></canvas></div>
+  </div>
+
+  <!-- View 3 -->
+  <div id="view-gap" class="chart-card view-hidden">
+    <div class="chart-title">Decalajul de finalizare: termen → +3 ani</div>
+    <div class="chart-desc">Câte puncte procentuale în plus se câștigă dacă se acordă 3 ani suplimentari față de durata teoretică</div>
+    <div class="chart-wrap"><canvas id="gapChart"></canvas></div>
+  </div>
+
+  <!-- View 4: Map -->
+  <div id="view-map" class="chart-card view-hidden">
+    <div class="chart-title">Hartă coropleth — Europa</div>
+    <div class="chart-desc">Culoarea reflectă valoarea indicatorului selectat · hover pe o țară pentru detalii complete</div>
+    <div class="map-metric-tabs">
+      <button class="map-mtab active" onclick="updateMap('onTime',this)">La termen</button>
+      <button class="map-mtab" onclick="updateMap('plus3',this)">+3 ani</button>
+      <button class="map-mtab" onclick="updateMap('dropout',this)">Abandon an 1</button>
+      <button class="map-mtab" onclick="updateMap('gap',this)">Decalaj</button>
+    </div>
+    <div class="map-wrap">
+      <svg id="mapSvg"></svg>
+      <div class="map-tooltip" id="mapTooltip"></div>
+    </div>
+    <div class="map-legend">
+      <span id="mapLegendLow">mic</span>
+      <div class="map-legend-bar" id="mapLegendBar"></div>
+      <span id="mapLegendHigh">mare</span>
+      <span style="margin-left:14px;color:#1e1e28;font-size:14px;">■</span>
+      <span style="margin-left:4px;">Fără date OECD</span>
+    </div>
+  </div>
+
+  <footer>
+    Surse: OECD Education at a Glance 2023 (Table B4.1) · Date pentru cohorte de studenți înscriși cu normă întreagă (new entrants, full-time)<br>
+    „La termen" = finalizare în durata teoretică oficială · „+1/+3 ani" = finalizare cu întârziere de max. 1 resp. 3 ani · Mediile UE25/OECD sunt agregate ponderate
+  </footer>
+</div>
+
+<script>
+/* ── DATA ── */
+const data = [
+  { country:'Irlanda',      iso:'IRL', dropout:12,  onTime:68, plus1:74, plus3:77 },
+  { country:'România',      iso:'ROU', dropout:21,  onTime:62, plus1:65, plus3:66, ro:true },
+  { country:'Regatul Unit', iso:'GBR', dropout:1.5, onTime:67, plus1:80, plus3:84 },
+  { country:'Ungaria',      iso:'HUN', dropout:5,   onTime:50, plus1:65, plus3:72 },
+  { country:'Lituania',     iso:'LTU', dropout:9,   onTime:57, plus1:64, plus3:65 },
+  { country:'Polonia',      iso:'POL', dropout:19,  onTime:53, plus1:62, plus3:69 },
+  { country:'Finlanda',     iso:'FIN', dropout:5,   onTime:49, plus1:61, plus3:77 },
+  { country:'Portugalia',   iso:'PRT', dropout:8,   onTime:41, plus1:65, plus3:74 },
+  { country:'Suedia',       iso:'SWE', dropout:10,  onTime:40, plus1:54, plus3:67 },
+  { country:'Spania',       iso:'ESP', dropout:8,   onTime:40, plus1:59, plus3:73 },
+  { country:'Slovenia',     iso:'SVN', dropout:19,  onTime:43, plus1:54, plus3:62 },
+  { country:'Estonia',      iso:'EST', dropout:13,  onTime:40, plus1:57, plus3:66 },
+  { country:'Italia',       iso:'ITA', dropout:13,  onTime:37, plus1:51, plus3:56 },
+  { country:'Bulgaria',     iso:'BGR', dropout:25,  onTime:38, plus1:43, plus3:49 },
+  { country:'Luxemburg',    iso:'LUX', dropout:31,  onTime:38, plus1:55, plus3:62 },
+  { country:'Țările de Jos',iso:'NLD', dropout:11,  onTime:30, plus1:55, plus3:73 },
+  { country:'Austria',      iso:'AUT', dropout:13,  onTime:21, plus1:42, plus3:60 },
+  { country:'Media UE25',   iso:null,  dropout:13,  onTime:44, plus1:58, plus3:68, avg:true },
+  { country:'Media OECD',   iso:null,  dropout:13,  onTime:43, plus1:59, plus3:70, avg:true },
+];
+data.forEach(d => d.gap = d.plus3 - d.onTime);
+
+const countryData = {};
+data.filter(d=>d.iso).forEach(d => { countryData[d.iso] = d; });
+
+/* ── CHART DEFAULTS ── */
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.color = '#7a7a96';
+
+const sorted = [...data].sort((a,b) => b.onTime - a.onTime);
+
+/* ── CHART 1 ── */
+new Chart(document.getElementById('completionChart'), {
+  type:'bar',
+  data:{
+    labels: sorted.map(d=>d.country),
+    datasets:[
+      { label:'La termen', data:sorted.map(d=>d.onTime),
+        backgroundColor:sorted.map(d=>d.ro?'#e8604c':'rgba(245,200,66,0.75)'),
+        borderColor:sorted.map(d=>d.ro?'#e8604c':'#f5c842'), borderWidth:1, borderRadius:3 },
+      { label:'+1 an', data:sorted.map(d=>d.plus1),
+        backgroundColor:sorted.map(d=>d.ro?'rgba(232,96,76,0.5)':'rgba(76,184,196,0.6)'),
+        borderColor:sorted.map(d=>d.ro?'#e8604c':'#4cb8c4'), borderWidth:1, borderRadius:3 },
+      { label:'+3 ani', data:sorted.map(d=>d.plus3),
+        backgroundColor:sorted.map(d=>d.ro?'rgba(232,96,76,0.3)':'rgba(139,92,246,0.5)'),
+        borderColor:sorted.map(d=>d.ro?'#e8604c':'#8b5cf6'), borderWidth:1, borderRadius:3 },
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:'#16161d',borderColor:'#2a2a38',borderWidth:1,
+      titleColor:'#e8e8f0',bodyColor:'#7a7a96',callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxRotation:45,font:{size:10}}},
+      y:{grid:{color:'rgba(255,255,255,0.06)'},ticks:{callback:v=>v+'%'},max:100}
+    }
+  }
+});
+
+/* ── CHART 2 ── */
+const sortedDrop = [...data].sort((a,b)=>b.dropout-a.dropout);
+new Chart(document.getElementById('dropoutChart'), {
+  type:'bar',
+  data:{
+    labels:sortedDrop.map(d=>d.country),
+    datasets:[{ label:'Abandon an 1', data:sortedDrop.map(d=>d.dropout),
+      backgroundColor:sortedDrop.map(d=>d.ro?'#e8604c':d.avg?'rgba(245,200,66,0.5)':'rgba(232,96,76,0.45)'),
+      borderColor:sortedDrop.map(d=>d.ro?'#e8604c':d.avg?'#f5c842':'rgba(232,96,76,0.8)'),
+      borderWidth:1, borderRadius:3 }]
+  },
+  options:{
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:'#16161d',borderColor:'#2a2a38',borderWidth:1,
+      titleColor:'#e8e8f0',bodyColor:'#7a7a96',callbacks:{label:ctx=>` Abandon: ${ctx.parsed.x}%`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.06)'},ticks:{callback:v=>v+'%'},max:40},
+      y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:11}}}
+    }
+  }
+});
+
+/* ── CHART 3 ── */
+const gapSorted = [...data].sort((a,b)=>b.gap-a.gap);
+new Chart(document.getElementById('gapChart'), {
+  type:'bar',
+  data:{
+    labels:gapSorted.map(d=>d.country),
+    datasets:[{ label:'Decalaj (pp)', data:gapSorted.map(d=>d.gap),
+      backgroundColor:gapSorted.map(d=>d.ro?'#e8604c':d.avg?'rgba(245,200,66,0.5)':'rgba(139,92,246,0.6)'),
+      borderColor:gapSorted.map(d=>d.ro?'#e8604c':d.avg?'#f5c842':'#8b5cf6'),
+      borderWidth:1, borderRadius:3 }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:'#16161d',borderColor:'#2a2a38',borderWidth:1,
+      titleColor:'#e8e8f0',bodyColor:'#7a7a96',callbacks:{label:ctx=>` Decalaj: +${ctx.parsed.y} pp`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxRotation:45,font:{size:10}}},
+      y:{grid:{color:'rgba(255,255,255,0.06)'},ticks:{callback:v=>'+'+v+'pp'}}
+    }
+  }
+});
+
+/* ── TAB SWITCHING ── */
+function showView(name) {
+  ['completion','dropout','gap','map'].forEach(v => {
+    document.getElementById('view-'+v).classList.toggle('view-hidden', v!==name);
+  });
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['completion','dropout','gap','map'][i]===name);
+  });
+  if(name==='map' && !mapInitialized) initMap();
+}
+
+/* ── MAP ── */
+let mapInitialized = false;
+let currentMetric = 'onTime';
+let pathSel, cScale;
+
+// ISO numeric → ISO alpha-3 for our dataset countries
+const isoNum = {
+  '040':'AUT','056':'BEL','100':'BGR','191':'HRV','203':'CZE',
+  '208':'DNK','233':'EST','246':'FIN','250':'FRA','276':'DEU',
+  '300':'GRC','348':'HUN','372':'IRL','380':'ITA','428':'LVA',
+  '440':'LTU','442':'LUX','470':'MLT','528':'NLD','578':'NOR',
+  '616':'POL','620':'PRT','642':'ROU','703':'SVK','705':'SVN',
+  '724':'ESP','752':'SWE','756':'CHE','826':'GBR','804':'UKR',
+  '498':'MDA','008':'ALB','070':'BIH','807':'MKD','688':'SRB',
+  '499':'MNE','008':'ALB'
+};
+
+const metricColors = {
+  onTime:  ['#1a2a1a','#1a4a3a','#1a6a5a','#4cb8c4','#f5c842'],
+  plus3:   ['#1a2a1a','#1a4a3a','#1a6a5a','#4cb8c4','#f5c842'],
+  dropout: ['#f5c842','#f0a030','#e8604c','#b03020','#4a0808'],
+  gap:     ['#f5c842','#8aaa6e','#4a8a9a','#2d4a6e','#0e1a2e'],
+};
+
+const metricLabel = {
+  onTime:'Finalizare la termen (%)',
+  plus3:'Finalizare la +3 ani (%)',
+  dropout:'Abandon după an 1 (%)',
+  gap:'Decalaj termen→+3ani (pp)'
+};
+
+async function initMap() {
+  mapInitialized = true;
+  const svg = d3.select('#mapSvg');
+  const wrap = document.getElementById('mapSvg').parentElement;
+  const W = Math.max(wrap.clientWidth || 700, 400);
+  const H = 450;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  let topo;
+  try {
+    topo = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+  } catch(e) {
+    svg.append('text').attr('x',W/2).attr('y',H/2)
+      .attr('text-anchor','middle').attr('fill','#7a7a96')
+      .style('font-family',"'IBM Plex Mono',monospace").attr('font-size',13)
+      .text('Harta nu s-a putut încărca (conexiune indisponibilă)');
+    return;
+  }
+
+  const projection = d3.geoNaturalEarth1()
+    .scale(W * 1.05)
+    .center([13, 53])
+    .translate([W/2, H/2]);
+
+  const path = d3.geoPath().projection(projection);
+  const countries = topojson.feature(topo, topo.objects.countries);
+
+  const vals = data.filter(d=>d.iso).map(d=>d.onTime);
+  const ext = d3.extent(vals);
+  cScale = d3.scaleLinear()
+    .domain([ext[0], ext[0]+(ext[1]-ext[0])*0.25, ext[0]+(ext[1]-ext[0])*0.5,
+             ext[0]+(ext[1]-ext[0])*0.75, ext[1]])
+    .range(metricColors.onTime).clamp(true);
+
+  pathSel = svg.selectAll('path.c')
+    .data(countries.features)
+    .join('path').attr('class','c')
+    .attr('d', path)
+    .attr('fill', d => {
+      const a3 = isoNum[String(d.id).padStart(3,'0')];
+      const cd = a3 && countryData[a3];
+      return cd ? cScale(cd.onTime) : '#1a1a26';
+    })
+    .attr('stroke', '#0e0e12')
+    .attr('stroke-width', d => {
+      const a3 = isoNum[String(d.id).padStart(3,'0')];
+      return a3==='ROU' ? 2 : 0.4;
+    })
+    .style('cursor', d => {
+      const a3 = isoNum[String(d.id).padStart(3,'0')];
+      return (a3 && countryData[a3]) ? 'pointer' : 'default';
+    });
+
+  const tooltip = document.getElementById('mapTooltip');
+
+  pathSel
+    .on('mousemove', function(event, d) {
+      const a3 = isoNum[String(d.id).padStart(3,'0')];
+      const cd = a3 && countryData[a3];
+      if (!cd) return;
+      tooltip.style.opacity = '1';
+      const rect = wrap.getBoundingClientRect();
+      let x = event.clientX - rect.left + 14;
+      let y = event.clientY - rect.top - 10;
+      if (x + 175 > rect.width) x -= 190;
+      if (y + 160 > H) y -= 150;
+      tooltip.style.left = x+'px';
+      tooltip.style.top  = y+'px';
+
+      const hl = (key) => key===currentMetric ? ' class="tt-row highlight"' : ' class="tt-row"';
+      tooltip.innerHTML = `
+        <div class="tt-country">${cd.country}</div>
+        <div${hl('onTime')}><span>La termen</span><span>${cd.onTime}%</span></div>
+        <div${hl('plus1')}><span>+1 an</span><span>${cd.plus1}%</span></div>
+        <div${hl('plus3')}><span>+3 ani</span><span>${cd.plus3}%</span></div>
+        <div${hl('dropout')}><span>Abandon an 1</span><span>${cd.dropout}%</span></div>
+        <div${hl('gap')}><span>Decalaj</span><span>+${cd.gap} pp</span></div>
+      `;
+      d3.select(this).attr('stroke','#f5c842').attr('stroke-width',1.8);
+    })
+    .on('mouseleave', function(event,d) {
+      tooltip.style.opacity = '0';
+      const a3 = isoNum[String(d.id).padStart(3,'0')];
+      d3.select(this).attr('stroke','#0e0e12').attr('stroke-width', a3==='ROU'?2:0.4);
+    });
+
+  updateMapLegend();
+}
+
+function updateMap(metric, btn) {
+  currentMetric = metric;
+  document.querySelectorAll('.map-mtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!mapInitialized) return;
+
+  const vals = data.filter(d=>d.iso).map(d=>d[metric]);
+  const ext = d3.extent(vals);
+  cScale = d3.scaleLinear()
+    .domain([ext[0], ext[0]+(ext[1]-ext[0])*0.25, ext[0]+(ext[1]-ext[0])*0.5,
+             ext[0]+(ext[1]-ext[0])*0.75, ext[1]])
+    .range(metricColors[metric]).clamp(true);
+
+  pathSel.transition().duration(400).attr('fill', d => {
+    const a3 = isoNum[String(d.id).padStart(3,'0')];
+    const cd = a3 && countryData[a3];
+    return cd ? cScale(cd[metric]) : '#1a1a26';
+  });
+
+  updateMapLegend();
+}
+
+function updateMapLegend() {
+  const metric = currentMetric;
+  const vals = data.filter(d=>d.iso).map(d=>d[metric]);
+  const ext = d3.extent(vals);
+  const unit = metric==='gap' ? ' pp' : '%';
+  document.getElementById('mapLegendLow').textContent  = Math.round(ext[0])+unit;
+  document.getElementById('mapLegendHigh').textContent = Math.round(ext[1])+unit;
+  const c = metricColors[metric];
+  document.getElementById('mapLegendBar').style.background =
+    `linear-gradient(to right, ${c.join(',')})`;
+}
+</script>
+</body>
+</html>
