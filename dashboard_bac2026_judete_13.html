@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAC 2026 pe județe — rurality, PIB și studenți</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2029; --panel2:#222a35; --ink:#e8edf2; --muted:#93a1b0;
+    --line:#2d3745; --acc:#4a9eff; --acc2:#ffb454; --pos:#5fd08a; --neg:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:28px 20px 60px}
+  .wrap{max-width:1160px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 4px;font-weight:650}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .v{font-size:22px;font-weight:680;margin-top:4px}
+  .kpi .v small{font-size:13px;color:var(--muted);font-weight:500}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 8px}
+  .card h3{margin:0 0 2px;font-size:15px;font-weight:620}
+  .card .cap{color:var(--muted);font-size:12.5px;margin-bottom:8px}
+  .rbadge{display:inline-block;font-weight:700;padding:1px 8px;border-radius:20px;font-size:12.5px;margin-left:6px}
+  .chartbox{position:relative;height:300px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+  th:hover{color:var(--ink)}
+  tbody tr:hover{background:var(--panel2)}
+  .tablecard{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:8px 4px;max-height:520px;overflow:auto}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc2);
+    border-radius:10px;padding:14px 16px;font-size:12.8px;color:var(--muted);margin-top:22px}
+  .eq{font-size:18px;line-height:1.7;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto}
+  .eq .cp{color:#7fe0a4;font-weight:700} .eq .cn{color:#ff8a8a;font-weight:700}
+  .eqmeta{color:var(--muted);font-size:13px;margin-top:12px;line-height:1.6}
+  .clegend{display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .clegend span{display:inline-flex;align-items:center;gap:7px}
+  .clegend i{width:26px;display:inline-block;border-top-width:3px;border-top-style:solid}
+  .note b{color:var(--ink)}
+  .bar{display:inline-block;height:8px;border-radius:4px;background:var(--acc);vertical-align:middle}
+  .secttitle{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    margin:6px 0 10px;font-weight:600}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Bacalaureat 2026 pe județe — rurality, PIB/locuitor și studenți</h1>
+  <div class="sub">Bază de date pentru toate cele 42 de unități (41 județe + București). Rata de promovare BAC pe axa Y a fiecărui grafic.</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="secttitle">Rata de promovare BAC 2026 (Y) în funcție de cei trei predictori (X)</div>
+  <div class="grid">
+    <div class="card">
+      <h3>Rurality <span class="rbadge" id="b_rural"></span></h3>
+      <div class="cap">X: % populație rurală (RPL 2021)</div>
+      <div class="chartbox"><canvas id="c_rural"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Prosperitate <span class="rbadge" id="b_pib"></span></h3>
+      <div class="cap">X: PIB/locuitor 2023 (euro)</div>
+      <div class="chartbox"><canvas id="c_pib"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Densitate universitară <span class="rbadge" id="b_stud"></span></h3>
+      <div class="cap">X: studenți ca % din populație</div>
+      <div class="chartbox"><canvas id="c_stud"></canvas></div>
+    </div>
+  </div>
+
+  <div class="secttitle">Analize suplimentare</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px" class="gridfocus">
+    <div class="card">
+      <h3>PIB/loc × BAC — fără Buc. & Ilfov, n=40 <span class="rbadge" id="b_pib2"></span></h3>
+      <div class="cap">X: PIB/locuitor 2023 (€) · excluse: București și Ilfov</div>
+      <div class="chartbox"><canvas id="c_pib2"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Distanță de București × BAC, n=41 <span class="rbadge" id="b_dist"></span></h3>
+      <div class="cap">X: distanță rutieră reședință → București (km) · exclus: București</div>
+      <div class="chartbox"><canvas id="c_dist"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Participare la BAC × promovare, n=42 <span class="rbadge" id="b_part"></span></h3>
+      <div class="cap">X: candidați BAC / elevi clasa a XII-a (%)</div>
+      <div class="chartbox"><canvas id="c_part"></canvas></div>
+    </div>
+  </div>
+
+  <div class="secttitle">Modelul final ponderat — ecuația de regresie (WLS log-liniar)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="eq">BAC&#770; = 90,05 <span class="cn">− 0,066</span>·(% rural) <span class="cn">− 5,22</span>·ln(PIB/loc, mii €) <span class="cp">+ 3,91</span>·ln(studenți %)</div>
+    <div class="eqmeta">
+      n = 42 · ponderi = nr. candidați / județ · R² = 0,510 · F(3,38) = 13,2 · p &lt; 0,001<br>
+      Semnificație coeficienți: ln(studenți) <b style="color:#7fe0a4">p &lt; 0,001 ***</b> · ln(PIB) p = 0,131 (ns) · rural p = 0,43 (ns).
+      Coeficienții ln se citesc semi-elastic: dublarea densității de studenți (+100%) ≈ <b>+2,7 p.p.</b> rată de promovare (3,91·ln2).
+    </div>
+  </div>
+
+  <div class="secttitle">Model cauzal — supresie și mediere</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Schemă conceptuală derivată din corelații și din regresia multiplă. Numerele pe săgeți: <b>r</b> = corelații între variabilele structurale; <b>β</b> = coeficienți standardizați (efect direct în model).</div>
+    <svg viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif">
+      <defs>
+        <marker id="ahg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5fd08a"/></marker>
+        <marker id="ahr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b6b"/></marker>
+        <marker id="ahb" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4a9eff"/></marker>
+        <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#93a1b0"/></marker>
+      </defs>
+
+      <!-- EDGES structurale -->
+      <path d="M200,272 C260,252 250,210 305,190" fill="none" stroke="#6b7a8a" stroke-width="1.6" marker-end="url(#ahm)"/>
+      <path d="M200,266 C340,208 430,140 545,160" fill="none" stroke="#6b7a8a" stroke-width="1.6" marker-end="url(#ahm)"/>
+      <path d="M200,80 C340,96 430,120 545,138" fill="none" stroke="#6b7a8a" stroke-width="1.6" marker-end="url(#ahm)"/>
+      <path d="M450,168 C490,158 505,154 543,151" fill="none" stroke="#6b7a8a" stroke-width="1.6" marker-end="url(#ahm)"/>
+      <!-- EDGE studenti -> BAC (dominant) -->
+      <path d="M758,150 C788,160 795,180 809,197" fill="none" stroke="#5fd08a" stroke-width="4" marker-end="url(#ahg)"/>
+      <!-- EDGE PIB -> BAC (supresie) -->
+      <path d="M450,186 C610,250 720,252 808,214" fill="none" stroke="#ff6b6b" stroke-width="2.4" stroke-dasharray="7,4" marker-end="url(#ahr)"/>
+      <!-- EDGE participare -> BAC -->
+      <path d="M758,342 C790,320 798,270 812,236" fill="none" stroke="#4a9eff" stroke-width="2" marker-end="url(#ahb)"/>
+      <!-- EDGE rural -> BAC (mediat, ns) -->
+      <path d="M200,294 C400,478 650,470 808,244" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="2,5" marker-end="url(#ahm)"/>
+
+      <!-- EDGE LABELS -->
+      <text x="236" y="243" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 12px sans-serif">r = −0,77</text>
+      <text x="352" y="196" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 12px sans-serif">r = −0,67</text>
+      <text x="336" y="98" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 12px sans-serif">geografie (−)</text>
+      <text x="470" y="140" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 12px sans-serif">r = +0,77</text>
+      <text x="742" y="166" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#7fe0a4;font:700 13px sans-serif">β = +0,86 ***</text>
+      <text x="560" y="278" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ff8a8a;font:700 12.5px sans-serif">β = −0,39 · SUPRESIE</text>
+      <text x="766" y="300" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#8ac0ff;font:600 12px sans-serif">β = +0,23</text>
+      <text x="404" y="486" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#a7b3c0;font:600 12px sans-serif">β = −0,12 (mediat, ns)</text>
+
+      <!-- NODES -->
+      <g>
+        <rect x="24" y="54" width="176" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="112" y="74" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">Distanță de</text>
+        <text x="112" y="90" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">București</text>
+      </g>
+      <g>
+        <rect x="24" y="252" width="176" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="112" y="281" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">% populație rurală</text>
+      </g>
+      <g>
+        <rect x="300" y="150" width="150" height="50" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="375" y="180" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">PIB / locuitor</text>
+      </g>
+      <g>
+        <rect x="548" y="118" width="210" height="62" rx="10" fill="#1f2b3a" stroke="#4a9eff" stroke-width="1.6"/>
+        <text x="653" y="143" text-anchor="middle" style="fill:#e8edf2;font:700 13px sans-serif">Densitate universitară</text>
+        <text x="653" y="162" text-anchor="middle" style="fill:#8ac0ff;font:600 12px sans-serif">(studenți %) — mediator</text>
+      </g>
+      <g>
+        <rect x="548" y="320" width="210" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="653" y="349" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">Participare la BAC</text>
+      </g>
+      <g>
+        <rect x="812" y="168" width="150" height="92" rx="12" fill="#2a2416" stroke="#ffb454" stroke-width="1.8"/>
+        <text x="887" y="196" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">Rata de</text>
+        <text x="887" y="214" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">promovare</text>
+        <text x="887" y="232" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">BAC 2026</text>
+      </g>
+    </svg>
+    <div class="clegend">
+      <span><i style="border-color:#5fd08a"></i> efect direct robust</span>
+      <span><i style="border-color:#ff6b6b;border-top-style:dashed"></i> supresie (semn inversat)</span>
+      <span><i style="border-color:#4a9eff"></i> efect direct slab</span>
+      <span><i style="border-color:#93a1b0;border-top-style:dotted"></i> efect mediat (direct ns)</span>
+    </div>
+    <div class="note" style="margin-top:16px">
+      <b>Cum se citește.</b> Cele patru variabile structurale (distanță, rural, PIB) sunt manifestări ale aceluiași <b>gradient urban–dezvoltare</b>, puternic intercorelate (r = 0,67–0,77). Acest gradient acționează asupra promovării <b>aproape exclusiv prin densitatea universitară</b> (studenți %), singurul canal cu efect direct robust (β = +0,86, p &lt; 0,001). <b>Medierea:</b> efectele brute ale % rural și ale distanței de București dispar (devin nesemnificative) odată ce se controlează studenții — sunt complet mediate. <b>Supresia:</b> PIB corelează pozitiv cu promovarea la nivel brut (r = +0,26), dar în model capătă semn negativ (β = −0,39) fiindcă își împarte varianța cu densitatea universitară; sub ponderare (WLS) efectul devine nesemnificativ (p = 0,131) — semn că e un artefact de coliniaritate, nu o relație cauzală. <b>Participarea</b> aduce singurul efect propriu suplimentar, slab și pozitiv (β = +0,23). <i>Notă: schemă conceptuală, nu un model SEM estimat formal; săgețile structurale redau corelații, nu căi testate cu efecte indirecte.</i>
+    </div>
+  </div>
+
+
+  <div class="secttitle">Analiză de mediere (path analysis, bootstrap 5000)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Descompunerea efectului fiecărei variabile structurale asupra promovării, prin mediatorul <b>ln(studenți %)</b>. Coeficienți standardizați: <b>a</b> = X→mediator, <b>b</b> = mediator→BAC, <b>c′</b> = efect direct rămas, <b>a·b</b> = efect indirect (mediat), cu interval de încredere bootstrap.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:4px 0 6px" class="gridfocus"><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px 12px 14px">
+      <div style="font-weight:650;font-size:13.5px;margin-bottom:2px;color:#e8edf2">% rural</div>
+      <div style="font-size:12px;color:#7fe0a4;font-weight:600;margin-bottom:6px">mediere completă</div>
+      <svg viewBox="0 0 300 176" style="width:100%;height:auto;font-family:sans-serif">
+        <defs>
+          <marker id="m0g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker>
+          <marker id="m0a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff8a8a"/></marker>
+          <marker id="m0c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker>
+        </defs>
+        <path d="M60,112 L120,58" fill="none" stroke="#ff8a8a" stroke-width="2.2" marker-end="url(#m0a)"/>
+        <path d="M180,58 L240,112" fill="none" stroke="#5fd08a" stroke-width="3" marker-end="url(#m0g)"/>
+        <path d="M104,132 L196,132" fill="none" stroke="#93a1b0" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#m0c)"/>
+        <text x="66" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ff8a8a;font:700 11px sans-serif">a=-0.69</text>
+        <text x="212" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#7fe0a4;font:700 11px sans-serif">b=+0.74</text>
+        <text x="150" y="126" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#93a1b0;font:700 11px sans-serif">c′=+0.10</text>
+        <g><rect x="12" y="112" width="92" height="40" rx="8" fill="#222a35" stroke="#2d3745"/>
+           <text x="58" y="136" text-anchor="middle" style="fill:#e8edf2;font:600 11.5px sans-serif">% rural</text></g>
+        <g><rect x="104" y="18" width="92" height="42" rx="8" fill="#1f2b3a" stroke="#4a9eff"/>
+           <text x="150" y="39" text-anchor="middle" style="fill:#8ac0ff;font:700 11px sans-serif">ln(studenți)</text>
+           <text x="150" y="52" text-anchor="middle" style="fill:#93a1b0;font:600 9.5px sans-serif">mediator</text></g>
+        <g><rect x="196" y="112" width="92" height="40" rx="8" fill="#2a2416" stroke="#ffb454"/>
+           <text x="242" y="136" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;color:#93a1b0;margin-top:6px;line-height:1.5">
+        indirect (a·b) = <b style="color:#e8edf2">-0.51</b> · IC95% [-0.90, -0.26]<br>
+        total c = -0.41 · direct c′ = +0.10 · <b>125%</b> mediat · n=42</div>
+    </div><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px 12px 14px">
+      <div style="font-weight:650;font-size:13.5px;margin-bottom:2px;color:#e8edf2">ln(PIB/loc)</div>
+      <div style="font-size:12px;color:#ff8a8a;font-weight:600;margin-bottom:6px">supresie (inconsistentă)</div>
+      <svg viewBox="0 0 300 176" style="width:100%;height:auto;font-family:sans-serif">
+        <defs>
+          <marker id="m1g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker>
+          <marker id="m1a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#8ac0ff"/></marker>
+          <marker id="m1c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff8a8a"/></marker>
+        </defs>
+        <path d="M60,112 L120,58" fill="none" stroke="#8ac0ff" stroke-width="2.2" marker-end="url(#m1a)"/>
+        <path d="M180,58 L240,112" fill="none" stroke="#5fd08a" stroke-width="3" marker-end="url(#m1g)"/>
+        <path d="M104,132 L196,132" fill="none" stroke="#ff8a8a" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#m1c)"/>
+        <text x="66" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#8ac0ff;font:700 11px sans-serif">a=+0.69</text>
+        <text x="212" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#7fe0a4;font:700 11px sans-serif">b=+0.90</text>
+        <text x="150" y="126" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ff8a8a;font:700 11px sans-serif">c′=-0.33</text>
+        <g><rect x="12" y="112" width="92" height="40" rx="8" fill="#222a35" stroke="#2d3745"/>
+           <text x="58" y="136" text-anchor="middle" style="fill:#e8edf2;font:600 11.5px sans-serif">ln(PIB/loc)</text></g>
+        <g><rect x="104" y="18" width="92" height="42" rx="8" fill="#1f2b3a" stroke="#4a9eff"/>
+           <text x="150" y="39" text-anchor="middle" style="fill:#8ac0ff;font:700 11px sans-serif">ln(studenți)</text>
+           <text x="150" y="52" text-anchor="middle" style="fill:#93a1b0;font:600 9.5px sans-serif">mediator</text></g>
+        <g><rect x="196" y="112" width="92" height="40" rx="8" fill="#2a2416" stroke="#ffb454"/>
+           <text x="242" y="136" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;color:#93a1b0;margin-top:6px;line-height:1.5">
+        indirect (a·b) = <b style="color:#e8edf2">+0.62</b> · IC95% [+0.38, +0.87]<br>
+        total c = +0.29 · direct c′ = -0.33 · <b>213%</b> mediat · n=42</div>
+    </div><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px 12px 14px">
+      <div style="font-weight:650;font-size:13.5px;margin-bottom:2px;color:#e8edf2">ln(distanță București)</div>
+      <div style="font-size:12px;color:#8ac0ff;font-weight:600;margin-bottom:6px">mediere parțială</div>
+      <svg viewBox="0 0 300 176" style="width:100%;height:auto;font-family:sans-serif">
+        <defs>
+          <marker id="m2g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker>
+          <marker id="m2a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#8ac0ff"/></marker>
+          <marker id="m2c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker>
+        </defs>
+        <path d="M60,112 L120,58" fill="none" stroke="#8ac0ff" stroke-width="2.2" marker-end="url(#m2a)"/>
+        <path d="M180,58 L240,112" fill="none" stroke="#5fd08a" stroke-width="3" marker-end="url(#m2g)"/>
+        <path d="M104,132 L196,132" fill="none" stroke="#93a1b0" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#m2c)"/>
+        <text x="66" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#8ac0ff;font:700 11px sans-serif">a=+0.40</text>
+        <text x="212" y="86" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#7fe0a4;font:700 11px sans-serif">b=+0.59</text>
+        <text x="150" y="126" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#93a1b0;font:700 11px sans-serif">c′=+0.17</text>
+        <g><rect x="12" y="112" width="92" height="40" rx="8" fill="#222a35" stroke="#2d3745"/>
+           <text x="58" y="136" text-anchor="middle" style="fill:#e8edf2;font:600 11.5px sans-serif">ln(distanță București)</text></g>
+        <g><rect x="104" y="18" width="92" height="42" rx="8" fill="#1f2b3a" stroke="#4a9eff"/>
+           <text x="150" y="39" text-anchor="middle" style="fill:#8ac0ff;font:700 11px sans-serif">ln(studenți)</text>
+           <text x="150" y="52" text-anchor="middle" style="fill:#93a1b0;font:600 9.5px sans-serif">mediator</text></g>
+        <g><rect x="196" y="112" width="92" height="40" rx="8" fill="#2a2416" stroke="#ffb454"/>
+           <text x="242" y="136" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;color:#93a1b0;margin-top:6px;line-height:1.5">
+        indirect (a·b) = <b style="color:#e8edf2">+0.24</b> · IC95% [+0.09, +0.44]<br>
+        total c = +0.41 · direct c′ = +0.17 · <b>58%</b> mediat · n=41</div>
+    </div></div>
+    <div class="note" style="margin-top:14px">
+      <b>Citire.</b> Un efect indirect al cărui IC95% nu conține 0 este semnificativ. <b>% rural:</b> efectul total (−0,41) este integral mediat de densitatea universitară (indirect −0,51, direct ≈ 0) — județele rurale promovează mai slab <i>pentru că</i> au mai puține universități, nu direct. <b>PIB:</b> caz-școală de <b>supresie / mediere inconsistentă</b> — indirect puternic pozitiv (+0,62), dar direct negativ (−0,33): prosperitatea ajută promovarea <i>exclusiv</i> prin universități, iar componenta rămasă are semn opus. <b>Distanța:</b> mediere parțială (~58%). <i>Avertisment cauzal: medierea statistică presupune absența confuzorilor mediator–rezultat; aici e o descompunere pe date agregate (ecologice), deci interpretarea cauzală rămâne condiționată de acea ipoteză. `studenți %` și `PIB` conțin estimări.</i>
+    </div>
+  </div>
+
+  <div class="secttitle">Eroarea de predicție pe județ — model WLS log-liniar (ponderat după nr. candidați)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Rezidual = rata observată − rata prezisă (puncte procentuale). <span style="color:#7fe0a4">Verde</span> = județul performează <b>peste</b> profilul său structural (rural + PIB + studenți); <span style="color:#ff8a8a">roșu</span> = <b>sub</b>. Cazurile extreme sunt cele mai interesante teoretic — abateri neexplicate de structură.</div>
+    <div style="position:relative;height:800px"><canvas id="c_resid"></canvas></div>
+  </div>
+
+  <div class="secttitle">Baza de date (click pe capul de coloană pentru sortare)</div>
+  <div class="tablecard">
+    <table id="tbl">
+      <thead><tr>
+        <th data-k="judet">Județ</th>
+        <th data-k="regiune">Regiune</th>
+        <th data-k="bac2026">BAC 2026 %</th>
+        <th data-k="rural_pct">Rural %</th>
+        <th data-k="pib_eur">PIB/loc. €</th>
+        <th data-k="studenti_pct">Studenți %</th>
+        <th data-k="dist_buc_km">Dist. Buc. (km)</th>
+        <th data-k="participare_pct">Participare %</th>
+        <th data-k="pop_mii">Pop. (mii)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>Surse și metodologie.</b><br>
+    • <b>Rata de promovare BAC 2026</b> — toate promoțiile, rezultate inițiale (înainte de contestații), 07.07.2026. Sursă: <b>Ministerul Educației și Cercetării</b> (date verificate, complete pentru toate cele 42 de unități). Media națională: 74,8%.<br>
+    • <b>% populație rurală</b> — Recensământul Populației și Locuințelor <b>RPL 2021 (INS)</b>; media națională 47,8% rural. București = 0% (unitate exclusiv urbană).<br>
+    • <b>PIB/locuitor 2023 (euro)</b> — conturi regionale <b>INS / CNSP</b>. Valori-ancoră verificate: București 46.968, Cluj 24.826, Timiș 22.723; Vaslui 7.498, Botoșani 7.594, Giurgiu 8.034; media 13.916 €. Celelalte valori sunt estimări pe seria INS 2023 (± câteva puncte) — recomand înlocuirea cu extras exact din <a href="http://statistici.insse.ro">INS Tempo (CON103)</a> pentru publicare.<br>
+    • <b>Studenți ca % din populație</b> — pe baza <b>distribuției teritoriale INS</b> a studenților care urmează efectiv cursurile în județ (nu a înmatriculărilor pe universitate, care supraestimează centrele mari prin filiale). Valori indicative; pentru precizie, INS Tempo <b>SCL103D</b> raportat la populația RPL 2021.<br>
+    • <b>Participare la BAC</b> = candidați BAC / elevi clasa a XII-a (%). Sursă: fișier încărcat — elevi din <b>Min. Educației / data.gov.ro</b> (înmatriculați 2025-2026), candidați din rapoartele oficiale pe județ (bacalaureat.edu.ro). <b>Atenție:</b> numărătorul include și promoțiile anterioare, deci rata poate depăși 100% (ex. Harghita, marcat roșu).<br>
+    • <b>Corelații Pearson (n=42)</b> calculate direct pe date. Fără București (outlier peri-urban frecvent semnalat) valorile rămân practic identice. <b>Atenție statistică</b>: județele nu sunt observații independente de aceeași „greutate” (variază enorm ca populație) și București/Ilfov distorsionează scala; pentru un model corect recomand ponderare după numărul de candidați și, eventual, controlarea nivelului de educație al populației adulte (RPL 2021, tab. 3.01).
+  </div>
+
+  <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:12.5px">
+    Realizat de <b style="color:var(--ink)">Adrian Hatos</b> cu Claude și Codex, folosind date disponibile online.
+  </div>
+</div>
+
+<script>
+const DATA = [{"judet": "Cluj", "cod": "CJ", "regiune": "Nord-Vest", "bac2026": 85.3, "rural_pct": 33.0, "pib_eur": 24826, "pop_mii": 691, "studenti_mii": 67.0, "studenti_pct": 9.7, "dist_buc_km": 445, "elevi_xii": 5005, "candidati_bac": 4405, "participare_pct": 88.0, "pred": 79.99, "resid": 5.31}, {"judet": "Alba", "cod": "AB", "regiune": "Centru", "bac2026": 81.4, "rural_pct": 42.0, "pib_eur": 16500, "pop_mii": 324, "studenti_mii": 7.0, "studenti_pct": 2.16, "dist_buc_km": 350, "elevi_xii": 2478, "candidati_bac": 2127, "participare_pct": 85.8, "pred": 75.66, "resid": 5.74}, {"judet": "Brașov", "cod": "BV", "regiune": "Centru", "bac2026": 81.3, "rural_pct": 26.0, "pib_eur": 18200, "pop_mii": 549, "studenti_mii": 21.0, "studenti_pct": 3.83, "dist_buc_km": 170, "elevi_xii": 3865, "candidati_bac": 3474, "participare_pct": 89.9, "pred": 78.44, "resid": 2.86}, {"judet": "Iași", "cod": "IS", "regiune": "Nord-Est", "bac2026": 81.1, "rural_pct": 56.4, "pib_eur": 13800, "pop_mii": 761, "studenti_mii": 53.0, "studenti_pct": 6.96, "dist_buc_km": 390, "elevi_xii": 6099, "candidati_bac": 5292, "participare_pct": 86.8, "pred": 80.22, "resid": 0.88}, {"judet": "Brăila", "cod": "BR", "regiune": "Sud-Est", "bac2026": 79.8, "rural_pct": 35.0, "pib_eur": 11400, "pop_mii": 285, "studenti_mii": 3.0, "studenti_pct": 1.05, "dist_buc_km": 200, "elevi_xii": 2277, "candidati_bac": 1682, "participare_pct": 73.9, "pred": 75.23, "resid": 4.57}, {"judet": "București", "cod": "B", "regiune": "București-Ilfov", "bac2026": 79.6, "rural_pct": 0.0, "pib_eur": 46968, "pop_mii": 1716, "studenti_mii": 170.0, "studenti_pct": 9.91, "dist_buc_km": 0, "elevi_xii": 19489, "candidati_bac": 17897, "participare_pct": 91.8, "pred": 78.91, "resid": 0.69}, {"judet": "Bacău", "cod": "BC", "regiune": "Nord-Est", "bac2026": 79.6, "rural_pct": 55.0, "pib_eur": 11000, "pop_mii": 561, "studenti_mii": 6.0, "studenti_pct": 1.07, "dist_buc_km": 290, "elevi_xii": 4588, "candidati_bac": 3840, "participare_pct": 83.7, "pred": 74.17, "resid": 5.43}, {"judet": "Bihor", "cod": "BH", "regiune": "Nord-Vest", "bac2026": 79.4, "rural_pct": 49.0, "pib_eur": 14600, "pop_mii": 551, "studenti_mii": 16.0, "studenti_pct": 2.9, "dist_buc_km": 575, "elevi_xii": 4234, "candidati_bac": 3540, "participare_pct": 83.6, "pred": 76.99, "resid": 2.41}, {"judet": "Sibiu", "cod": "SB", "regiune": "Centru", "bac2026": 78.1, "rural_pct": 35.0, "pib_eur": 19000, "pop_mii": 375, "studenti_mii": 16.0, "studenti_pct": 4.27, "dist_buc_km": 275, "elevi_xii": 2836, "candidati_bac": 2531, "participare_pct": 89.2, "pred": 78.04, "resid": 0.06}, {"judet": "Galați", "cod": "GL", "regiune": "Sud-Est", "bac2026": 77.7, "rural_pct": 44.0, "pib_eur": 11500, "pop_mii": 505, "studenti_mii": 15.0, "studenti_pct": 2.97, "dist_buc_km": 230, "elevi_xii": 4263, "candidati_bac": 3306, "participare_pct": 77.6, "pred": 78.66, "resid": -0.96}, {"judet": "Satu Mare", "cod": "SM", "regiune": "Nord-Vest", "bac2026": 77.5, "rural_pct": 55.0, "pib_eur": 12500, "pop_mii": 328, "studenti_mii": 2.0, "studenti_pct": 0.61, "dist_buc_km": 615, "elevi_xii": 2267, "candidati_bac": 1871, "participare_pct": 82.5, "pred": 71.31, "resid": 6.19}, {"judet": "Argeș", "cod": "AG", "regiune": "Sud-Muntenia", "bac2026": 77.0, "rural_pct": 52.0, "pib_eur": 15000, "pop_mii": 570, "studenti_mii": 8.0, "studenti_pct": 1.4, "dist_buc_km": 115, "elevi_xii": 5135, "candidati_bac": 4197, "participare_pct": 81.7, "pred": 73.8, "resid": 3.2}, {"judet": "Suceava", "cod": "SV", "regiune": "Nord-Est", "bac2026": 75.9, "rural_pct": 57.0, "pib_eur": 9600, "pop_mii": 658, "studenti_mii": 8.0, "studenti_pct": 1.22, "dist_buc_km": 435, "elevi_xii": 5770, "candidati_bac": 4904, "participare_pct": 85.0, "pred": 75.27, "resid": 0.63}, {"judet": "Prahova", "cod": "PH", "regiune": "Sud-Muntenia", "bac2026": 75.8, "rural_pct": 48.0, "pib_eur": 15200, "pop_mii": 726, "studenti_mii": 5.5, "studenti_pct": 0.76, "dist_buc_km": 60, "elevi_xii": 5895, "candidati_bac": 5397, "participare_pct": 91.6, "pred": 71.61, "resid": 4.19}, {"judet": "Buzău", "cod": "BZ", "regiune": "Sud-Est", "bac2026": 75.5, "rural_pct": 58.0, "pib_eur": 10500, "pop_mii": 393, "studenti_mii": 1.5, "studenti_pct": 0.38, "dist_buc_km": 110, "elevi_xii": 3267, "candidati_bac": 2634, "participare_pct": 80.6, "pred": 70.17, "resid": 5.33}, {"judet": "Bistrița-Năsăud", "cod": "BN", "regiune": "Nord-Vest", "bac2026": 74.7, "rural_pct": 62.0, "pib_eur": 12000, "pop_mii": 277, "studenti_mii": 1.5, "studenti_pct": 0.54, "dist_buc_km": 440, "elevi_xii": 2362, "candidati_bac": 2022, "participare_pct": 85.6, "pred": 70.59, "resid": 4.11}, {"judet": "Dolj", "cod": "DJ", "regiune": "Sud-Vest Oltenia", "bac2026": 74.6, "rural_pct": 46.0, "pib_eur": 13000, "pop_mii": 610, "studenti_mii": 22.0, "studenti_pct": 3.61, "dist_buc_km": 235, "elevi_xii": 5088, "candidati_bac": 3964, "participare_pct": 77.9, "pred": 78.65, "resid": -4.05}, {"judet": "Botoșani", "cod": "BT", "regiune": "Nord-Est", "bac2026": 74.4, "rural_pct": 58.0, "pib_eur": 7594, "pop_mii": 375, "studenti_mii": 1.0, "studenti_pct": 0.27, "dist_buc_km": 450, "elevi_xii": 3066, "candidati_bac": 2523, "participare_pct": 82.3, "pred": 70.53, "resid": 3.87}, {"judet": "Neamț", "cod": "NT", "regiune": "Nord-Est", "bac2026": 74.3, "rural_pct": 62.0, "pib_eur": 10000, "pop_mii": 434, "studenti_mii": 2.0, "studenti_pct": 0.46, "dist_buc_km": 330, "elevi_xii": 3598, "candidati_bac": 3089, "participare_pct": 85.9, "pred": 70.91, "resid": 3.39}, {"judet": "Covasna", "cod": "CV", "regiune": "Centru", "bac2026": 74.0, "rural_pct": 50.0, "pib_eur": 11000, "pop_mii": 199, "studenti_mii": 0.5, "studenti_pct": 0.25, "dist_buc_km": 195, "elevi_xii": 1290, "candidati_bac": 1210, "participare_pct": 93.8, "pred": 68.82, "resid": 5.18}, {"judet": "Constanța", "cod": "CT", "regiune": "Sud-Est", "bac2026": 73.8, "rural_pct": 30.0, "pib_eur": 18800, "pop_mii": 685, "studenti_mii": 22.0, "studenti_pct": 3.21, "dist_buc_km": 225, "elevi_xii": 6025, "candidati_bac": 5035, "participare_pct": 83.6, "pred": 77.31, "resid": -3.51}, {"judet": "Mureș", "cod": "MS", "regiune": "Centru", "bac2026": 73.6, "rural_pct": 52.0, "pib_eur": 13000, "pop_mii": 518, "studenti_mii": 15.0, "studenti_pct": 2.9, "dist_buc_km": 335, "elevi_xii": 3637, "candidati_bac": 3200, "participare_pct": 88.0, "pred": 77.4, "resid": -3.8}, {"judet": "Vrancea", "cod": "VN", "regiune": "Sud-Est", "bac2026": 72.8, "rural_pct": 61.0, "pib_eur": 10000, "pop_mii": 317, "studenti_mii": 0.8, "studenti_pct": 0.25, "dist_buc_km": 185, "elevi_xii": 2704, "candidati_bac": 2177, "participare_pct": 80.5, "pred": 68.59, "resid": 4.21}, {"judet": "Maramureș", "cod": "MM", "regiune": "Nord-Vest", "bac2026": 72.5, "rural_pct": 41.0, "pib_eur": 11000, "pop_mii": 458, "studenti_mii": 5.0, "studenti_pct": 1.09, "dist_buc_km": 600, "elevi_xii": 3668, "candidati_bac": 3113, "participare_pct": 84.9, "pred": 75.17, "resid": -2.67}, {"judet": "Hunedoara", "cod": "HD", "regiune": "Vest", "bac2026": 71.5, "rural_pct": 24.0, "pib_eur": 13500, "pop_mii": 361, "studenti_mii": 4.0, "studenti_pct": 1.11, "dist_buc_km": 365, "elevi_xii": 3041, "candidati_bac": 2347, "participare_pct": 77.2, "pred": 75.29, "resid": -3.79}, {"judet": "Timiș", "cod": "TM", "regiune": "Vest", "bac2026": 70.9, "rural_pct": 38.0, "pib_eur": 22723, "pop_mii": 651, "studenti_mii": 41.0, "studenti_pct": 6.3, "dist_buc_km": 565, "elevi_xii": 5102, "candidati_bac": 4561, "participare_pct": 89.4, "pred": 78.43, "resid": -7.53}, {"judet": "Vaslui", "cod": "VS", "regiune": "Nord-Est", "bac2026": 70.3, "rural_pct": 58.0, "pib_eur": 7498, "pop_mii": 375, "studenti_mii": 1.0, "studenti_pct": 0.27, "dist_buc_km": 340, "elevi_xii": 3003, "candidati_bac": 2566, "participare_pct": 85.4, "pred": 70.6, "resid": -0.3}, {"judet": "Vâlcea", "cod": "VL", "regiune": "Sud-Vest Oltenia", "bac2026": 70.0, "rural_pct": 54.0, "pib_eur": 12500, "pop_mii": 355, "studenti_mii": 2.0, "studenti_pct": 0.56, "dist_buc_km": 180, "elevi_xii": 2688, "candidati_bac": 2340, "participare_pct": 87.1, "pred": 71.04, "resid": -1.04}, {"judet": "Gorj", "cod": "GJ", "regiune": "Sud-Vest Oltenia", "bac2026": 69.7, "rural_pct": 53.0, "pib_eur": 15000, "pop_mii": 315, "studenti_mii": 2.0, "studenti_pct": 0.63, "dist_buc_km": 300, "elevi_xii": 2917, "candidati_bac": 2679, "participare_pct": 91.8, "pred": 70.61, "resid": -0.91}, {"judet": "Tulcea", "cod": "TL", "regiune": "Sud-Est", "bac2026": 69.1, "rural_pct": 51.0, "pib_eur": 12000, "pop_mii": 193, "studenti_mii": 0.6, "studenti_pct": 0.31, "dist_buc_km": 270, "elevi_xii": 1376, "candidati_bac": 1283, "participare_pct": 93.2, "pred": 69.14, "resid": -0.04}, {"judet": "Harghita", "cod": "HR", "regiune": "Centru", "bac2026": 68.4, "rural_pct": 56.0, "pib_eur": 10500, "pop_mii": 291, "studenti_mii": 1.0, "studenti_pct": 0.34, "dist_buc_km": 265, "elevi_xii": 2305, "candidati_bac": 2380, "participare_pct": 103.3, "pred": 69.87, "resid": -1.47}, {"judet": "Dâmbovița", "cod": "DB", "regiune": "Sud-Muntenia", "bac2026": 67.8, "rural_pct": 68.0, "pib_eur": 11500, "pop_mii": 483, "studenti_mii": 4.0, "studenti_pct": 0.83, "dist_buc_km": 80, "elevi_xii": 3404, "candidati_bac": 2955, "participare_pct": 86.8, "pred": 72.1, "resid": -4.3}, {"judet": "Sălaj", "cod": "SJ", "regiune": "Nord-Vest", "bac2026": 67.7, "rural_pct": 60.0, "pib_eur": 14000, "pop_mii": 216, "studenti_mii": 0.6, "studenti_pct": 0.28, "dist_buc_km": 490, "elevi_xii": 1631, "candidati_bac": 1448, "participare_pct": 88.8, "pred": 67.34, "resid": 0.36}, {"judet": "Arad", "cod": "AR", "regiune": "Vest", "bac2026": 67.3, "rural_pct": 46.0, "pib_eur": 17000, "pop_mii": 410, "studenti_mii": 9.0, "studenti_pct": 2.2, "dist_buc_km": 540, "elevi_xii": 3318, "candidati_bac": 2765, "participare_pct": 83.3, "pred": 75.31, "resid": -8.01}, {"judet": "Caraș-Severin", "cod": "CS", "regiune": "Vest", "bac2026": 67.2, "rural_pct": 44.0, "pib_eur": 11000, "pop_mii": 246, "studenti_mii": 2.0, "studenti_pct": 0.81, "dist_buc_km": 500, "elevi_xii": 2024, "candidati_bac": 1403, "participare_pct": 69.3, "pred": 73.81, "resid": -6.61}, {"judet": "Olt", "cod": "OT", "regiune": "Sud-Vest Oltenia", "bac2026": 66.0, "rural_pct": 59.0, "pib_eur": 10500, "pop_mii": 402, "studenti_mii": 1.0, "studenti_pct": 0.25, "dist_buc_km": 190, "elevi_xii": 3333, "candidati_bac": 2317, "participare_pct": 69.5, "pred": 68.47, "resid": -2.47}, {"judet": "Ialomița", "cod": "IL", "regiune": "Sud-Muntenia", "bac2026": 64.7, "rural_pct": 55.0, "pib_eur": 11000, "pop_mii": 244, "studenti_mii": 0.5, "studenti_pct": 0.2, "dist_buc_km": 130, "elevi_xii": 1782, "candidati_bac": 1561, "participare_pct": 87.6, "pred": 67.62, "resid": -2.92}, {"judet": "Teleorman", "cod": "TR", "regiune": "Sud-Muntenia", "bac2026": 64.7, "rural_pct": 66.0, "pib_eur": 10500, "pop_mii": 323, "studenti_mii": 0.5, "studenti_pct": 0.15, "dist_buc_km": 90, "elevi_xii": 2136, "candidati_bac": 1741, "participare_pct": 81.5, "pred": 66.01, "resid": -1.31}, {"judet": "Giurgiu", "cod": "GR", "regiune": "Sud-Muntenia", "bac2026": 63.2, "rural_pct": 69.0, "pib_eur": 8034, "pop_mii": 260, "studenti_mii": 0.4, "studenti_pct": 0.15, "dist_buc_km": 65, "elevi_xii": 1192, "candidati_bac": 964, "participare_pct": 80.9, "pred": 67.21, "resid": -4.01}, {"judet": "Călărași", "cod": "CL", "regiune": "Sud-Muntenia", "bac2026": 61.3, "rural_pct": 62.0, "pib_eur": 10000, "pop_mii": 269, "studenti_mii": 0.5, "studenti_pct": 0.19, "dist_buc_km": 120, "elevi_xii": 1395, "candidati_bac": 1244, "participare_pct": 89.2, "pred": 67.45, "resid": -6.15}, {"judet": "Mehedinți", "cod": "MH", "regiune": "Sud-Vest Oltenia", "bac2026": 60.1, "rural_pct": 52.0, "pib_eur": 9500, "pop_mii": 236, "studenti_mii": 1.0, "studenti_pct": 0.42, "dist_buc_km": 350, "elevi_xii": 2194, "candidati_bac": 1496, "participare_pct": 68.2, "pred": 71.48, "resid": -11.38}, {"judet": "Ilfov", "cod": "IF", "regiune": "București-Ilfov", "bac2026": 55.3, "rural_pct": 45.0, "pib_eur": 24000, "pop_mii": 542, "studenti_mii": 1.5, "studenti_pct": 0.28, "dist_buc_km": 25, "elevi_xii": 1749, "candidati_bac": 1374, "participare_pct": 78.6, "pred": 65.51, "resid": -10.21}];
+const CORR = {"rural_pct": -0.4076329173600974, "pib_eur": 0.2554417877908411, "studenti_pct": 0.5565015248953779}, REG = {"rural_pct": [-0.19712040445165727, 82.2006362896037], "pib_eur": [0.0002504033812129496, 68.99350394085135], "studenti_pct": [1.4838059776713035, 69.7755416528673]}, CORR_NOB = {"rural_pct": -0.3830090703017068, "pib_eur": 0.196449530307874, "studenti_pct": 0.5554090314271425}, NAT = {"bac": 74.8, "rural": 47.8, "pib": 13916};
+const CURVES = {"c_rural": {"form": "liniar", "r2": 0.16616459531550432, "x": [0.0, 1.169, 2.339, 3.508, 4.678, 5.847, 7.017, 8.186, 9.356, 10.525, 11.695, 12.864, 14.034, 15.203, 16.373, 17.542, 18.712, 19.881, 21.051, 22.22, 23.39, 24.559, 25.729, 26.898, 28.068, 29.237, 30.407, 31.576, 32.746, 33.915, 35.085, 36.254, 37.424, 38.593, 39.763, 40.932, 42.102, 43.271, 44.441, 45.61, 46.78, 47.949, 49.119, 50.288, 51.458, 52.627, 53.797, 54.966, 56.136, 57.305, 58.475, 59.644, 60.814, 61.983, 63.153, 64.322, 65.492, 66.661, 67.831, 69.0], "y": [82.201, 81.97, 81.74, 81.509, 81.279, 81.048, 80.817, 80.587, 80.356, 80.126, 79.895, 79.665, 79.434, 79.204, 78.973, 78.743, 78.512, 78.282, 78.051, 77.821, 77.59, 77.359, 77.129, 76.898, 76.668, 76.437, 76.207, 75.976, 75.746, 75.515, 75.285, 75.054, 74.824, 74.593, 74.363, 74.132, 73.902, 73.671, 73.44, 73.21, 72.979, 72.749, 72.518, 72.288, 72.057, 71.827, 71.596, 71.366, 71.135, 70.905, 70.674, 70.444, 70.213, 69.983, 69.752, 69.521, 69.291, 69.06, 68.83, 68.599]}, "c_pib": {"form": "logaritmic", "r2": 0.08393441739658547, "x": [7498.0, 8166.983, 8835.966, 9504.949, 10173.932, 10842.915, 11511.898, 12180.881, 12849.864, 13518.847, 14187.831, 14856.814, 15525.797, 16194.78, 16863.763, 17532.746, 18201.729, 18870.712, 19539.695, 20208.678, 20877.661, 21546.644, 22215.627, 22884.61, 23553.593, 24222.576, 24891.559, 25560.542, 26229.525, 26898.508, 27567.492, 28236.475, 28905.458, 29574.441, 30243.424, 30912.407, 31581.39, 32250.373, 32919.356, 33588.339, 34257.322, 34926.305, 35595.288, 36264.271, 36933.254, 37602.237, 38271.22, 38940.203, 39609.186, 40278.169, 40947.153, 41616.136, 42285.119, 42954.102, 43623.085, 44292.068, 44961.051, 45630.034, 46299.017, 46968.0], "y": [69.506, 69.967, 70.393, 70.787, 71.154, 71.498, 71.822, 72.127, 72.416, 72.69, 72.951, 73.2, 73.438, 73.666, 73.885, 74.095, 74.297, 74.492, 74.68, 74.862, 75.038, 75.208, 75.374, 75.534, 75.69, 75.841, 75.988, 76.131, 76.271, 76.407, 76.54, 76.669, 76.796, 76.919, 77.04, 77.158, 77.274, 77.387, 77.498, 77.607, 77.713, 77.818, 77.92, 78.021, 78.12, 78.217, 78.312, 78.406, 78.498, 78.588, 78.677, 78.765, 78.851, 78.936, 79.019, 79.101, 79.182, 79.262, 79.341, 79.418]}, "c_stud": {"form": "logaritmic", "r2": 0.4523637626910689, "x": [0.15, 0.315, 0.481, 0.646, 0.812, 0.977, 1.143, 1.308, 1.473, 1.639, 1.804, 1.97, 2.135, 2.301, 2.466, 2.631, 2.797, 2.962, 3.128, 3.293, 3.458, 3.624, 3.789, 3.955, 4.12, 4.286, 4.451, 4.616, 4.782, 4.947, 5.113, 5.278, 5.444, 5.609, 5.774, 5.94, 6.105, 6.271, 6.436, 6.602, 6.767, 6.932, 7.098, 7.263, 7.429, 7.594, 7.759, 7.925, 8.09, 8.256, 8.421, 8.587, 8.752, 8.917, 9.083, 9.248, 9.414, 9.579, 9.745, 9.91], "y": [66.061, 68.747, 70.27, 71.339, 72.162, 72.832, 73.398, 73.886, 74.316, 74.701, 75.048, 75.365, 75.657, 75.926, 76.177, 76.412, 76.632, 76.84, 77.036, 77.222, 77.4, 77.568, 77.73, 77.884, 78.032, 78.174, 78.311, 78.443, 78.57, 78.693, 78.812, 78.927, 79.039, 79.147, 79.252, 79.354, 79.453, 79.55, 79.644, 79.735, 79.825, 79.912, 79.997, 80.081, 80.162, 80.242, 80.319, 80.396, 80.47, 80.543, 80.615, 80.685, 80.754, 80.822, 80.888, 80.954, 81.018, 81.081, 81.143, 81.203]}, "c_pib2": {"form": "logaritmic", "r2": 0.20825438200600044, "x": [7498.0, 7791.695, 8085.39, 8379.085, 8672.78, 8966.475, 9260.169, 9553.864, 9847.559, 10141.254, 10434.949, 10728.644, 11022.339, 11316.034, 11609.729, 11903.424, 12197.119, 12490.814, 12784.508, 13078.203, 13371.898, 13665.593, 13959.288, 14252.983, 14546.678, 14840.373, 15134.068, 15427.763, 15721.458, 16015.153, 16308.847, 16602.542, 16896.237, 17189.932, 17483.627, 17777.322, 18071.017, 18364.712, 18658.407, 18952.102, 19245.797, 19539.492, 19833.186, 20126.881, 20420.576, 20714.271, 21007.966, 21301.661, 21595.356, 21889.051, 22182.746, 22476.441, 22770.136, 23063.831, 23357.525, 23651.22, 23944.915, 24238.61, 24532.305, 24826.0], "y": [67.681, 68.065, 68.436, 68.793, 69.137, 69.471, 69.793, 70.106, 70.409, 70.703, 70.989, 71.266, 71.537, 71.8, 72.056, 72.306, 72.55, 72.788, 73.021, 73.248, 73.47, 73.688, 73.9, 74.109, 74.313, 74.513, 74.709, 74.901, 75.09, 75.275, 75.457, 75.636, 75.811, 75.984, 76.153, 76.32, 76.484, 76.645, 76.804, 76.96, 77.114, 77.266, 77.415, 77.562, 77.707, 77.85, 77.991, 78.13, 78.267, 78.402, 78.535, 78.667, 78.797, 78.925, 79.052, 79.177, 79.3, 79.422, 79.543, 79.662]}, "c_dist": {"form": "logaritmic", "r2": 0.1687128993639665, "x": [25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 85.0, 95.0, 105.0, 115.0, 125.0, 135.0, 145.0, 155.0, 165.0, 175.0, 185.0, 195.0, 205.0, 215.0, 225.0, 235.0, 245.0, 255.0, 265.0, 275.0, 285.0, 295.0, 305.0, 315.0, 325.0, 335.0, 345.0, 355.0, 365.0, 375.0, 385.0, 395.0, 405.0, 415.0, 425.0, 435.0, 445.0, 455.0, 465.0, 475.0, 485.0, 495.0, 505.0, 515.0, 525.0, 535.0, 545.0, 555.0, 565.0, 575.0, 585.0, 595.0, 605.0, 615.0], "y": [63.983, 65.221, 66.146, 66.884, 67.499, 68.025, 68.486, 68.895, 69.263, 69.598, 69.905, 70.188, 70.451, 70.696, 70.926, 71.143, 71.347, 71.541, 71.725, 71.9, 72.067, 72.227, 72.381, 72.528, 72.669, 72.806, 72.937, 73.064, 73.187, 73.305, 73.42, 73.532, 73.64, 73.745, 73.847, 73.947, 74.044, 74.138, 74.23, 74.32, 74.407, 74.493, 74.577, 74.658, 74.738, 74.817, 74.893, 74.968, 75.042, 75.114, 75.185, 75.254, 75.322, 75.389, 75.455, 75.52, 75.583, 75.645, 75.707, 75.767]}, "c_part": {"form": "pătratic", "r2": 0.12121540275812814, "x": [68.2, 68.795, 69.39, 69.985, 70.58, 71.175, 71.769, 72.364, 72.959, 73.554, 74.149, 74.744, 75.339, 75.934, 76.529, 77.124, 77.719, 78.314, 78.908, 79.503, 80.098, 80.693, 81.288, 81.883, 82.478, 83.073, 83.668, 84.263, 84.858, 85.453, 86.047, 86.642, 87.237, 87.832, 88.427, 89.022, 89.617, 90.212, 90.807, 91.402, 91.997, 92.592, 93.186, 93.781, 94.376, 94.971, 95.566, 96.161, 96.756, 97.351, 97.946, 98.541, 99.136, 99.731, 100.325, 100.92, 101.515, 102.11, 102.705, 103.3], "y": [64.951, 65.487, 66.006, 66.508, 66.993, 67.462, 67.915, 68.35, 68.769, 69.171, 69.557, 69.926, 70.278, 70.613, 70.932, 71.234, 71.52, 71.789, 72.041, 72.276, 72.495, 72.697, 72.882, 73.051, 73.203, 73.338, 73.457, 73.559, 73.644, 73.713, 73.765, 73.8, 73.819, 73.821, 73.806, 73.774, 73.726, 73.661, 73.58, 73.482, 73.367, 73.235, 73.087, 72.922, 72.741, 72.542, 72.327, 72.096, 71.847, 71.582, 71.301, 71.002, 70.687, 70.356, 70.007, 69.642, 69.261, 68.862, 68.447, 68.015]}};
+function curveLine(cid){ const c=CURVES[cid]; return c.x.map((xv,i)=>({x:xv,y:c.y[i]})); }
+function setBadge(id,cid){ const c=CURVES[cid], el=document.getElementById(id);
+  el.textContent='R² = '+c.r2.toFixed(2)+' · '+c.form;
+  el.style.background='rgba(74,158,255,.16)'; el.style.color='#8ac0ff'; }
+
+const fmt = (n,d=0)=> n.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d});
+const rColor = r => r>0 ? 'var(--pos)' : 'var(--neg)';
+
+// KPI
+const best = [...DATA].sort((a,b)=>b.bac2026-a.bac2026)[0];
+const worst = [...DATA].sort((a,b)=>a.bac2026-b.bac2026)[0];
+document.getElementById('kpis').innerHTML = `
+  <div class="kpi"><div class="l">Media națională BAC</div><div class="v">74,8%</div></div>
+  <div class="kpi"><div class="l">Maxim</div><div class="v">${best.judet} <small>${fmt(best.bac2026,1)}%</small></div></div>
+  <div class="kpi"><div class="l">Minim</div><div class="v">${worst.judet} <small>${fmt(worst.bac2026,1)}%</small></div></div>
+  <div class="kpi"><div class="l">Amplitudine</div><div class="v">${fmt(best.bac2026-worst.bac2026,1)} <small>p.p.</small></div></div>`;
+
+Chart.defaults.color = '#93a1b0';
+Chart.defaults.font.family = "-apple-system,Segoe UI,Roboto,Arial,sans-serif";
+
+function scatter(canvas, key, xlabel, unit, dec, cid){
+  const pts = DATA.map(d=>({x:d[key], y:d.bac2026, j:d.judet}));
+  const line = curveLine(cid);
+  const big = new Set(['București','Cluj','Iași','Timiș','Ilfov','Giurgiu']);
+  new Chart(canvas.getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>big.has(p.j)?'#ffb454':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>big.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>{const p=c.raw; return ` ${p.j}: BAC ${fmt(p.y,1)}% · ${fmt(p.x,dec)}${unit}`;}
+      }}},
+      scales:{
+        x:{type:'linear',bounds:'data',
+           title:{display:true,text:xlabel,color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:92}
+      }
+    }
+  });
+}
+scatter(document.getElementById('c_rural'),'rural_pct','% populație rurală','%',0,'c_rural');
+scatter(document.getElementById('c_pib'),'pib_eur','PIB/locuitor (€)','€',0,'c_pib');
+scatter(document.getElementById('c_stud'),'studenti_pct','studenți (% din populație)','%',1,'c_stud');
+
+setBadge('b_rural','c_rural'); setBadge('b_pib','c_pib'); setBadge('b_stud','c_stud');
+setBadge('b_pib2','c_pib2'); setBadge('b_dist','c_dist'); setBadge('b_part','c_part');
+
+// ---- Al 4-lea grafic: PIB x BAC, FARA Bucuresti si Ilfov (n=40) ----
+function pear(pts){
+  const n=pts.length, mx=pts.reduce((s,p)=>s+p.x,0)/n, my=pts.reduce((s,p)=>s+p.y,0)/n;
+  let num=0,dx=0,dy=0;
+  pts.forEach(p=>{const a=p.x-mx,b=p.y-my; num+=a*b; dx+=a*a; dy+=b*b;});
+  return num/Math.sqrt(dx*dy);
+}
+function lin(pts){
+  const n=pts.length, mx=pts.reduce((s,p)=>s+p.x,0)/n, my=pts.reduce((s,p)=>s+p.y,0)/n;
+  let num=0,den=0;
+  pts.forEach(p=>{num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2;});
+  const b=num/den; return [b, my-b*mx];
+}
+(function(){
+  const sub = DATA.filter(d=>d.cod!=='B' && d.cod!=='IF');
+  const pts = sub.map(d=>({x:d.pib_eur, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_pib2');
+  const hi = new Set(['Cluj','Timiș','Iași','Sibiu']);
+  new Chart(document.getElementById('c_pib2').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>hi.has(p.j)?'#ffb454':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>hi.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · ${fmt(c.raw.x,0)} €`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'PIB/locuitor 2023 (€)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:58,max:88}
+      }
+    }
+  });
+  const el=document.getElementById('b_pib2');
+})();
+
+// ---- Al 5-lea grafic: DISTANTA de Bucuresti x BAC (fara Bucuresti, n=41) ----
+(function(){
+  const sub = DATA.filter(d=>d.cod!=='B' && d.dist_buc_km!=null);
+  const pts = sub.map(d=>({x:d.dist_buc_km, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_dist');
+  const near = new Set(['Ilfov','Giurgiu','Călărași','Teleorman','Ialomița']); // inelul sudic
+  new Chart(document.getElementById('c_dist').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>near.has(p.j)?'#ff6b6b':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>near.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · ${fmt(c.raw.x,0)} km`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'Distanță până la București (km)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:90}
+      }
+    }
+  });
+  const el=document.getElementById('b_dist');
+})();
+
+// ---- Al 6-lea grafic: PARTICIPARE la BAC x promovare (n=42) ----
+(function(){
+  const pts = DATA.map(d=>({x:d.participare_pct, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_part');
+  new Chart(document.getElementById('c_part').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>p.x>100?'#ff6b6b':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>p.x>100?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · particip. ${fmt(c.raw.x,1)}%`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'Participare la BAC (% din elevii clasei a XII-a)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)+'%'}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:90}
+      }
+    }
+  });
+  const el=document.getElementById('b_part');
+})();
+
+// ---- Grafic eroare de predictie per judet (rezidual WLS) ----
+(function(){
+  const rows=[...DATA].sort((a,b)=>b.resid-a.resid);
+  const vals=rows.map(d=>d.resid);
+  new Chart(document.getElementById('c_resid').getContext('2d'),{
+    type:'bar',
+    data:{labels:rows.map(d=>d.judet),datasets:[{data:vals,
+      backgroundColor:vals.map(v=>v>=0?'rgba(95,208,138,.75)':'rgba(255,107,107,.75)'),
+      borderColor:vals.map(v=>v>=0?'#5fd08a':'#ff6b6b'),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>{const d=rows[c.dataIndex];
+          return ` obs ${fmt(d.bac2026,1)}% · prezis ${fmt(d.pred,1)}% · Δ ${d.resid>=0?'+':''}${fmt(d.resid,1)} pp`;}
+      }}},
+      scales:{
+        x:{title:{display:true,text:'Eroare de predicție (puncte procentuale)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>(v>0?'+':'')+v}},
+        y:{grid:{display:false},ticks:{font:{size:11},autoSkip:false}}
+      }
+    }
+  });
+})();
+
+// tabel sortabil
+let sortK='bac2026', asc=false;
+const tb=document.querySelector('#tbl tbody');
+const maxRural=Math.max(...DATA.map(d=>d.rural_pct));
+function render(){
+  const rows=[...DATA].sort((a,b)=>{
+    let x=a[sortK],y=b[sortK];
+    if(typeof x==='string') return asc?x.localeCompare(y,'ro'):y.localeCompare(x,'ro');
+    return asc?x-y:y-x;
+  });
+  tb.innerHTML=rows.map(d=>`<tr>
+    <td>${d.judet}</td><td style="text-align:left;color:var(--muted)">${d.regiune}</td>
+    <td><b>${fmt(d.bac2026,1)}</b></td>
+    <td>${fmt(d.rural_pct,0)} <span class="bar" style="width:${d.rural_pct/maxRural*46}px"></span></td>
+    <td>${fmt(d.pib_eur,0)}</td>
+    <td>${fmt(d.studenti_pct,1)}</td>
+    <td>${d.dist_buc_km==null?'—':fmt(d.dist_buc_km,0)}</td>
+    <td>${fmt(d.participare_pct,1)}</td>
+    <td style="color:var(--muted)">${fmt(d.pop_mii,0)}</td>
+  </tr>`).join('');
+}
+document.querySelectorAll('#tbl th').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k; if(k===sortK) asc=!asc; else {sortK=k; asc=(k==='judet'||k==='regiune');}
+  render();
+});
+render();
+</script>
+</body>
+</html>
