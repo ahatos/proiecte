@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAC 2026 pe județe — rurality, PIB și studenți</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2029; --panel2:#222a35; --ink:#e8edf2; --muted:#93a1b0;
+    --line:#2d3745; --acc:#4a9eff; --acc2:#ffb454; --pos:#5fd08a; --neg:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:28px 20px 60px}
+  .wrap{max-width:1160px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 4px;font-weight:650}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .v{font-size:22px;font-weight:680;margin-top:4px}
+  .kpi .v small{font-size:13px;color:var(--muted);font-weight:500}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 8px}
+  .card h3{margin:0 0 2px;font-size:15px;font-weight:620}
+  .card .cap{color:var(--muted);font-size:12.5px;margin-bottom:8px}
+  .rbadge{display:inline-block;font-weight:700;padding:1px 8px;border-radius:20px;font-size:12.5px;margin-left:6px}
+  .chartbox{position:relative;height:300px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+  th:hover{color:var(--ink)}
+  tbody tr:hover{background:var(--panel2)}
+  .tablecard{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:8px 4px;max-height:520px;overflow:auto}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc2);
+    border-radius:10px;padding:14px 16px;font-size:12.8px;color:var(--muted);margin-top:22px}
+  .eq{font-size:18px;line-height:1.7;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto}
+  .eq .cp{color:#7fe0a4;font-weight:700} .eq .cn{color:#ff8a8a;font-weight:700}
+  .eqmeta{color:var(--muted);font-size:13px;margin-top:12px;line-height:1.6}
+  .clegend{display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .clegend span{display:inline-flex;align-items:center;gap:7px}
+  .clegend i{width:26px;display:inline-block;border-top-width:3px;border-top-style:solid}
+  .note b{color:var(--ink)}
+  .bar{display:inline-block;height:8px;border-radius:4px;background:var(--acc);vertical-align:middle}
+  .mbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:20px;
+    padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+  .mbtn:hover{color:var(--ink);border-color:#3d4a5a}
+  .mbtn-on{background:rgba(74,158,255,.16);color:#8ac0ff;border-color:var(--acc)}
+  .secttitle{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    margin:6px 0 10px;font-weight:600}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Bacalaureat 2026 pe județe — rurality, PIB/locuitor și studenți</h1>
+  <div class="sub">Bază de date pentru toate cele 42 de unități (41 județe + București). Rata de promovare BAC pe axa Y a fiecărui grafic.</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="secttitle">Rata de promovare BAC 2026 (Y) în funcție de cei trei predictori (X)</div>
+  <div class="grid">
+    <div class="card">
+      <h3>Rurality <span class="rbadge" id="b_rural"></span></h3>
+      <div class="cap">X: % populație rurală (RPL 2021)</div>
+      <div class="chartbox"><canvas id="c_rural"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Prosperitate <span class="rbadge" id="b_pib"></span></h3>
+      <div class="cap">X: PIB/locuitor 2023 (euro)</div>
+      <div class="chartbox"><canvas id="c_pib"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Densitate universitară <span class="rbadge" id="b_stud"></span></h3>
+      <div class="cap">X: studenți ca % din populație</div>
+      <div class="chartbox"><canvas id="c_stud"></canvas></div>
+    </div>
+  </div>
+
+  <div class="secttitle">Analize suplimentare</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px" class="gridfocus">
+    <div class="card">
+      <h3>PIB/loc × BAC — fără Buc. & Ilfov, n=40 <span class="rbadge" id="b_pib2"></span></h3>
+      <div class="cap">X: PIB/locuitor 2023 (€) · excluse: București și Ilfov</div>
+      <div class="chartbox"><canvas id="c_pib2"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Distanță de București × BAC, n=41 <span class="rbadge" id="b_dist"></span></h3>
+      <div class="cap">X: distanță rutieră reședință → București (km) · exclus: București</div>
+      <div class="chartbox"><canvas id="c_dist"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Participare la BAC × promovare, n=42 <span class="rbadge" id="b_part"></span></h3>
+      <div class="cap">X: candidați BAC / elevi clasa a XII-a (%)</div>
+      <div class="chartbox"><canvas id="c_part"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>% filiera tehnologică × promovare, n=42 <span class="rbadge" id="b_teh"></span></h3>
+      <div class="cap">X: elevi filiera tehnologică / total clasa a XII-a (%)</div>
+      <div class="chartbox"><canvas id="c_teh"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>% filiera vocațională × promovare, n=42 <span class="rbadge" id="b_voc"></span></h3>
+      <div class="cap">X: elevi filiera vocațională / total clasa a XII-a (%)</div>
+      <div class="chartbox"><canvas id="c_voc"></canvas></div>
+    </div>
+  </div>
+
+  <div class="secttitle">Profiluri (clasa a XII-a) × promovare BAC — compoziția fină</div>
+  <div class="card" style="margin-bottom:8px">
+    <div class="cap">Ponderea fiecărui profil din elevii clasei a XII-a (Real, Umanist = filiera teoretică; Tehnic, Servicii, Resurse naturale = filiera tehnologică). Semnalul e mai clar decât la nivel de filieră: profilul <b>Real</b> (STEM) corelează pozitiv, iar <b>Umanist</b> și <b>Resurse naturale</b> (agricol/mediu) negativ.</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px" class="gridfocus">
+    <div class="card"><h3>Real (STEM) <span class="rbadge" id="b_real"></span></h3>
+      <div class="cap">X: % profil Real din clasa a XII-a</div>
+      <div class="chartbox"><canvas id="c_real"></canvas></div></div>
+    <div class="card"><h3>Umanist <span class="rbadge" id="b_umanist"></span></h3>
+      <div class="cap">X: % profil Umanist din clasa a XII-a</div>
+      <div class="chartbox"><canvas id="c_umanist"></canvas></div></div>
+    <div class="card"><h3>Resurse naturale <span class="rbadge" id="b_resurse"></span></h3>
+      <div class="cap">X: % profil Resurse nat. și protecția mediului</div>
+      <div class="chartbox"><canvas id="c_resurse"></canvas></div></div>
+    <div class="card"><h3>Tehnic <span class="rbadge" id="b_tehnic"></span></h3>
+      <div class="cap">X: % profil Tehnic din clasa a XII-a</div>
+      <div class="chartbox"><canvas id="c_tehnic"></canvas></div></div>
+    <div class="card"><h3>Servicii <span class="rbadge" id="b_servicii"></span></h3>
+      <div class="cap">X: % profil Servicii din clasa a XII-a</div>
+      <div class="chartbox"><canvas id="c_servicii"></canvas></div></div>
+  </div>
+
+  <div class="secttitle">Testarea ipotezelor — piața muncii, capital uman, migrație</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:10px" class="gridfocus">
+    <div class="card"><h3>Șomaj <span class="rbadge" id="b_somaj"></span></h3>
+      <div class="cap">X: rata șomajului, apr. 2026 (%)</div>
+      <div class="chartbox" style="height:260px"><canvas id="c_somaj"></canvas></div></div>
+    <div class="card"><h3>Salariu <span class="rbadge" id="b_salariu"></span></h3>
+      <div class="cap">X: salariu mediu net 2024 (lei)</div>
+      <div class="chartbox" style="height:260px"><canvas id="c_salariu"></canvas></div></div>
+    <div class="card"><h3>Studii superioare <span class="rbadge" id="b_studsup"></span></h3>
+      <div class="cap">X: % populație cu studii superioare (RPL 2021)</div>
+      <div class="chartbox" style="height:260px"><canvas id="c_studsup"></canvas></div></div>
+    <div class="card"><h3>Mobilitate <span class="rbadge" id="b_mobil"></span></h3>
+      <div class="cap">X: % populație cu reședința anterioară în alt județ</div>
+      <div class="chartbox" style="height:260px"><canvas id="c_mobil"></canvas></div></div>
+  </div>
+  <div class="note" style="margin-top:0;margin-bottom:22px">
+    <b>Verdictul ipotezelor</b> (controlând densitatea universitară):
+    <b>H-migrație selectivă — confirmată, e variabila lipsă majoră:</b> mobilitatea interjudețeană (imigrație internă de forță de muncă) are efect negativ puternic (p &lt; 0,001) și urcă R²-ul modelului de la ~0,51 la ~0,70; explică aproape integral anomalia Ilfov (rezidual de la −10 la ≈ −3) — județele „porți de imigrație" (Ilfov, Timiș, Brașov, Hunedoara, Caraș-Severin, Constanța) primesc populație nouă fără capitalul educațional al vechilor clase de mijloc locale.
+    <b>H-cost de oportunitate — respinsă:</b> semnul e invers predicției — șomajul ridicat însoțește promovare <i>mai mică</i> (b ≈ −0,7, p ≈ 0,05); șomajul se comportă ca indicator de deprivare, nu ca stimulent pentru examen, iar salariul nu are efect propriu.
+    <b>H-capital uman (studii superioare) — fără efect propriu:</b> corelat bivariat (+0,29), dar redundant cu densitatea universitară (chiar supresie la control).
+    <b>H-coada tehnologică — infirmată în forma tare:</b> Timișul e sub medie și la <i>teoretică</i> (82,3% vs. Cluj 91,8%, Iași 93,5%; Arad 79,1%) — Vestul sub-performează pe toată distribuția, nu doar prin liceele tehnologice, deși gap-ul teoretică−tehnologică al Aradului (42,5 pp) depășește media (37,1 pp).
+  </div>
+
+  <div class="secttitle">Variabile testate suplimentar — capital educațional parental și abandon școlar</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px" class="gridfocus">
+    <div class="card"><h3>Studii superioare 30–49 ani <span class="rbadge" id="b_sup3049"></span></h3>
+      <div class="cap">X: % populație 30–49 ani cu studii superioare (estimare RPL 2021) — cohorta părinților</div>
+      <div class="chartbox" style="height:280px"><canvas id="c_sup3049"></canvas></div></div>
+    <div class="card"><h3>Abandon primar + gimnazial <span class="rbadge" id="b_abandon"></span></h3>
+      <div class="cap">X: rata anuală de abandon, 2022 (INS SCL113A)</div>
+      <div class="chartbox" style="height:280px"><canvas id="c_abandon"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-bottom:22px">
+    <div style="font-weight:650;font-size:14px;margin-bottom:8px">Comparație de modele și validare încrucișată (leave-one-out)</div>
+    <table style="font-size:13px"><thead><tr>
+      <th style="text-align:left">Model</th><th>k</th><th>R²</th><th>R² ajustat</th><th>R²<sub>LOO</sub></th></tr></thead>
+      <tbody id="cmpbody"></tbody></table>
+    <div class="note" style="margin-top:14px;border-left-color:#ff6b6b">
+      <b>Verdict: ambele variabile eșuează — nu sunt incluse în modelul final.</b> R² rămâne identic (0,703), R² ajustat <i>scade</i>, iar validarea leave-one-out se degradează clar (0,592 → 0,531 cu ambele) — semn de supra-ajustare pură, fără câștig informațional.<br><br>
+      <b>De ce eșuează, tehnic:</b> (1) <b>Studii superioare 30–49</b> corelează bivariat cu promovarea (r = +0,37), dar e o <i>estimare</i> obținută aplicând un factor național constant (0,512) la totalul județean — deci corelează <b>r = 0,98 cu % studii superioare total</b> și 0,78 cu densitatea universitară. În model are <b>VIF ≈ 18</b> și coeficient ≈ 0: nu aduce informație nouă, doar coliniaritate. Ipoteza „capital educațional parental" rămâne <i>netestată</i>, nu infirmată — ar fi nevoie de încrucișarea reală județ × vârstă × nivel din RPL, pe care INS nu o publică. (2) <b>Abandonul</b> nu corelează deloc (r = −0,14, p = 0,81) — dar indicatorul disponibil e rata <i>anuală</i> INS (0,2–3,1%), nu abandonul <i>cumulat de cohortă</i> pe care îl viza ipoteza; e mic, zgomotos și probabil reflectă practici de raportare (Timiș raportează 0,2%, cea mai mică din țară — implauzibil). Filtrul selecției pre-BAC e deja captat de variabila „participare".<br><br>
+      <b>Notă de onestitate:</b> R²<sub>LOO</sub> = 0,59 pentru modelul final arată că din cei 0,70 aparenți, aproximativ 0,59 se replică out-of-sample — restul e supra-ajustare firească la n = 42. Aceasta e cifra de raportat ca putere explicativă realistă.
+    </div>
+  </div>
+
+  <div class="secttitle">Replicare multi-an (2024 · 2025 · 2026) — testul de robustețe</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Același model rulat independent pe trei ani. Predictorii structurali (rural, PIB, studenți, mobilitate) sunt ficși (RPL 2021); șomajul și ponderile sunt specifice fiecărui an. <b>Toate cele trei rate sunt <i>inițiale</i> (înainte de contestații) — definiție identică, comparație curată.</b></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px" class="gridfocus">
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:6px">Stabilitatea coeficienților standardizați (β)</div>
+        <div class="chartbox" style="height:300px"><canvas id="c_repl"></canvas></div>
+      </div>
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:6px">Potrivirea modelului, pe ani</div>
+        <table style="font-size:13px"><thead><tr>
+          <th style="text-align:left">An</th><th>Media BAC</th><th>R²</th><th>R² ajustat</th><th>R²<sub>LOO</sub></th></tr></thead>
+          <tbody id="replbody"></tbody></table>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7">
+          <b style="color:var(--ink)">Stabilitatea clasamentului județelor:</b><br>
+          2024 ↔ 2025: r = +0,94 · 2025 ↔ 2026: r = +0,92 · 2024 ↔ 2026: r = +0,88<br>
+          <i>Ierarhia județelor e extrem de stabilă — promovarea nu e volatilă, ci structurală.</i>
+        </div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px;border-left-color:#5fd08a">
+      <b>Verdict: modelul se replică — rezultatul central rezistă.</b> Cei doi predictori-cheie își păstrează semnul, mărimea și semnificația în toți cei trei ani, independent: <b>ln(studenți)</b> β = +0,48 / +0,52 / +0,47 (p &lt; 0,02 peste tot) și <b>mobilitatea</b> β = −0,55 / −0,47 / −0,68 (p &lt; 0,03 peste tot). Efectul migrației interne <b>nu era un artefact al anului 2026</b> și nici o consecință a faptului că a fost descoperit explorând reziduurile — se confirmă pe date pe care nu a fost calibrat. <b>Rural</b> are semn constant (β ≈ −0,3) dar atinge pragul de semnificație doar în 2026. <b>ln(PIB)</b> e nesemnificativ în toți anii (β între −0,18 și 0,00) — confirmă că supresia observată inițial era într-adevăr efectul mascat al mobilității. <b>Șomajul</b> e cel mai instabil (β de la −0,15 la −0,28, semnificativ doar în 2026) — deprivarea rămâne cel mai fragil dintre efecte.<br><br>
+      <b>Ambiguitatea R²-ului — rezolvată.</b> Cu rate <i>inițiale</i> pentru toți cei trei ani (definiție identică), R² rămâne <b>0,54 / 0,55 în 2024–2025, față de 0,70 în 2026</b>. Deci diferența <b>nu</b> venea din contestații — ipoteza definiției e respinsă. Explicația rămasă e cea corectă statistic: modelul a fost <b>construit pe 2026</b> (mobilitatea a fost descoperită analizând reziduurile din 2026), deci acolo se potrivește optimist. Potrivirea onestă, out-of-sample, este cea din anii pe care modelul nu i-a văzut: <b>R²<sub>LOO</sub> ≈ 0,41–0,42</b>. Aceasta e cifra de raportat ca putere explicativă reală a modelului, iar cei ~0,70 din 2026 trebuie prezentați ca in-sample.<br><br><b>Ce nu se schimbă — și asta contează:</b> deși R²-ul e mai modest, <b>coeficienții sunt practic identici</b> pe rate inițiale (ln studenți β = +0,47/+0,53/+0,47; mobilitate β = −0,54/−0,48/−0,68). Concluzia substanțială e neatinsă: mecanismele sunt stabile, doar puterea explicativă globală era supraestimată.</div>
+  </div>
+
+  <div class="secttitle">Scatterplot 3D — ratele de promovare 2024 × 2025 × 2026</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Fiecare județ este un punct în spațiul celor trei ani (rate inițiale, comparabile). Culoarea = mobilitate interjudețeană. <b>Rotiți cu mouse-ul.</b> Norul se aliniază aproape perfect pe diagonala principală — ierarhia județelor e stabilă în timp.</div>
+    <div id="c_3d" style="width:100%;height:560px"></div>
+  </div>
+
+  <div class="secttitle">Diagnostic de influență — are Ilfov leverage excesiv asupra efectului mobilității?</div>
+  <div class="card" style="margin-bottom:22px">
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:18px" class="gridfocus">
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:8px">Statistici de influență (top 6 după Cook's D)</div>
+        <table style="font-size:12.5px"><thead><tr>
+          <th style="text-align:left">Județ</th><th>Mobil.</th><th>BAC</th><th>Leverage</th><th>Cook's D</th><th>DFBETA<sub>mob</sub></th><th>t ext.</th></tr></thead>
+          <tbody id="inflbody"></tbody></table>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">
+          Praguri: leverage &gt; <b id="th_lev"></b> · Cook's D &gt; <b id="th_cook"></b> · |DFBETA| &gt; <b id="th_dfb"></b>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:8px">Testul decisiv: coeficientul mobilității la excluderea cazurilor</div>
+        <table style="font-size:12.5px"><thead><tr>
+          <th style="text-align:left">Specificație</th><th>n</th><th>b</th><th>β</th><th>p</th></tr></thead>
+          <tbody id="refitbody"></tbody></table>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6">
+          Regresie robustă Huber (rezistentă la outlieri, toate 42): <b style="color:#7fe0a4">b = −0,542, p &lt; 0,001</b> — identic cu OLS.
+        </div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px;border-left-color:#5fd08a">
+      <b>Răspuns: DA, Ilfov are leverage extrem — dar NU el produce efectul. Dimpotrivă, îl atenuează.</b><br><br>
+      <b>Leverage-ul e real și masiv.</b> Ilfov are mobilitate de 50,7% (z = +4,6, adică la 4,6 abateri standard peste medie — următorul, Bucureștiul, e la 31%). Statisticile confirmă: <b>leverage h = 0,69</b> (prag 0,286), <b>Cook's D = 0,45</b> (prag 0,095), <b>DFBETA = 1,18</b> (prag 0,309). Suspiciunea dvs. era complet întemeiată — pe hârtie, e cel mai influent punct din model.<br><br>
+      <b>Dar excluderea lui întărește efectul, nu îl slăbește:</b> b trece de la −0,542 la <b>−0,680</b>, iar p rămâne 0,0004. Fără Ilfov + București: b = −0,680, p = 0,0004. Fără Ilfov + București + Timiș (cele trei cazuri „suspecte"): b = −0,618, β = −0,452, p = 0,003. <b>Efectul supraviețuiește în toate specificațiile.</b> Regresia robustă Huber dă exact același coeficient.<br><br>
+      <b>Explicația tehnică — Ilfov este un „good leverage point".</b> Reziduul lui studentizat este doar <b>t = +1,09</b>: deși e departe pe axa X, <b>modelul îl prezice corect</b> — stă pe dreapta de regresie, nu în afara ei. Un punct de leverage distorsionează doar dacă e și <i>outlier pe Y</i>; Ilfov nu este. El nu „fabrică" panta — o <b>confirmă</b> la extrem și îi crește precizia. Ironic, punctul cu adevărat problematic e <b>Mehedinți</b> (t = −2,65, Cook's D = 0,17): un outlier real pe Y, care promovează cu ~9 pp sub predicție și care <i>slăbește</i> ușor modelul.<br><br>
+      <b>Pentru manuscris:</b> raportați aceste diagnostice explicit — un recenzent atent va pune exact această întrebare. Faptul că efectul e <i>mai puternic</i> fără Ilfov e cel mai bun răspuns posibil.
+    </div>
+  </div>
+
+  <div class="secttitle">Autocorelare spațială — testul Moran's I și modelele spațiale</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Județele vecine nu sunt observații independente. Matrice de contiguitate (108 perechi vecine, ~5 vecini/județ), standardizată pe rânduri; semnificație prin permutare (9.999 replici).</div>
+    <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:18px;margin-top:12px" class="gridfocus">
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:8px">Moran's I pe reziduuri</div>
+        <table style="font-size:13px"><thead><tr>
+          <th style="text-align:left">Model</th><th>I</th><th>p</th><th>Verdict</th></tr></thead>
+          <tbody id="moranbody"></tbody></table>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.6">
+          Reziduurile OLS <b style="color:#ff8a8a">sunt autocorelate</b> → erorile standard raportate până acum erau <b>subestimate</b>. Modelul SAR curăță autocorelarea.
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:650;font-size:13.5px;margin-bottom:8px">Coeficienți: OLS vs. SAR (erori standard corectate spațial)</div>
+        <table style="font-size:13px"><thead><tr>
+          <th style="text-align:left">Termen</th><th>β OLS</th><th>p OLS</th><th>β SAR</th><th>p SAR</th></tr></thead>
+          <tbody id="sarbody"></tbody></table>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px;border-left-color:#5fd08a">
+      <b>Verdict: concluziile rezistă — dar modelul SAR e cel de raportat.</b><br><br>
+      <b>1. Dependența spațială e reală.</b> Rata de promovare e clusterizată (I = +0,185, p = 0,024), iar — crucial — <b>reziduurile modelului nespațial rămân autocorelate</b> (I = +0,192, p = 0,020). Deci vecinătatea nu conta doar pentru că județele vecine au structuri similare: rămâne o dependență spațială <i>reziduală</i>, neexplicată de predictori. „Inelul sudic" era un fenomen real, nu un artefact de compoziție.<br><br>
+      <b>2. Modelul SAR o corectează.</b> Coeficientul de lag spațial ρ = +0,28 (LR = 3,78, p = 0,052 — la limită), iar reziduurile SAR devin curate (I = +0,08, p = 0,26). Modelul SEM (eroare spațială) dă λ = +0,53 și curăță și mai bine (I = −0,04, p = 0,85).<br><br>
+      <b>3. Toate concluziile substanțiale supraviețuiesc</b> cu erorile standard corectate: <b>ln(studenți)</b> β = +2,42 (p = 0,001), <b>mobilitate</b> β = −0,49 (p &lt; 0,001), <b>rural</b> β = −0,17 (p = 0,012 — de fapt <i>întărit</i>), <b>șomaj</b> β = −0,61 (p = 0,043). ln(PIB) rămâne nesemnificativ. Niciun rezultat nu era un artefact al ignorării spațialității — dar erorile standard OLS erau într-adevăr prea optimiste, deci raportarea corectă în articol este cea SAR/SEM.<br><br>
+      <i>Notă: matricea de contiguitate a fost codificată manual și verificată pentru simetrie; ES-urile SAR sunt asimptotice (aproximare σ²(X'X)⁻¹), suficiente pentru inferență la acest n, dar pentru publicare recomand re-estimarea în R (pachetul <code>spatialreg</code>: <code>lagsarlm</code>/<code>errorsarlm</code>) cu erori standard exacte din matricea informațională.</i>
+    </div>
+  </div>
+
+  <div class="secttitle">Modelul final ponderat — ecuația de regresie (WLS: structură + piața muncii + migrație)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="eq">BAC&#770; = 91,92 <span class="cn">− 0,156</span>·(% rural) <span class="cn">− 0,47</span>·ln(PIB/loc) <span class="cp">+ 2,801</span>·ln(studenți %) <span class="cn">− 0,66</span>·(șomaj %) <span class="cn">− 0,536</span>·(mobilitate %) </div>
+    <div class="eqmeta">n = 42 · ponderi = nr. candidați / județ · R² = 0,683 (ajustat 0,639)<br>Semnificație: ln(studenți) <b style="color:#7fe0a4">p &lt; 0,001 ***</b> · mobilitate <b style="color:#7fe0a4">p &lt; 0,001 ***</b> · șomaj p = 0,062 (ns) · rural p = 0,036 * · ln(PIB) p = 0,897 (ns)<br>
+      Filierele/profilurile au fost testate și excluse (nesemnificative). Includerea mobilității <b>dizolvă supresia PIB</b> (coeficientul ln(PIB) devine ≈ 0): semnul negativ „paradoxal" de dinainte era efectul mascat al imigrației interne, corelată cu prosperitatea.
+    </div>
+  </div>
+
+  <div class="secttitle">Model cauzal final — corectat spațial (SAR), replicat pe 3 ani</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Coeficienții afișați sunt <b>β standardizați din modelul SAR</b> (erori standard corectate pentru autocorelare spațială) — nu din OLS-ul simplu. Fiecare efect a fost verificat prin: replicare independentă pe 2024/2025/2026, diagnostic de influență (excluderea Ilfov), și regresie robustă.</div>
+    <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif">
+      <defs>
+        <marker id="fg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5fd08a"/></marker>
+        <marker id="fr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b6b"/></marker>
+        <marker id="fo" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb454"/></marker>
+        <marker id="fm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#93a1b0"/></marker>
+        <marker id="fp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b07fd0"/></marker>
+      </defs>
+
+      <!-- gradient structural -->
+      <path d="M200,70 C300,74 340,88 396,96" fill="none" stroke="#6b7a8a" stroke-width="1.5" marker-end="url(#fm)"/>
+      <path d="M200,204 C300,174 340,134 396,110" fill="none" stroke="#6b7a8a" stroke-width="1.5" marker-end="url(#fm)"/>
+      <path d="M200,352 C300,304 340,184 398,126" fill="none" stroke="#6b7a8a" stroke-width="1.5" marker-end="url(#fm)"/>
+      <path d="M112,234 L112,330" fill="none" stroke="#6b7a8a" stroke-width="1.3" stroke-dasharray="3,3"/>
+      <path d="M200,366 C280,344 330,304 396,284" fill="none" stroke="#6b7a8a" stroke-width="1.5" marker-end="url(#fm)"/>
+      <path d="M200,386 C280,404 330,419 396,426" fill="none" stroke="#6b7a8a" stroke-width="2" marker-end="url(#fm)"/>
+
+      <!-- efecte directe -->
+      <path d="M612,104 C706,124 754,182 792,224" fill="none" stroke="#5fd08a" stroke-width="4" marker-end="url(#fg)"/>
+      <path d="M614,432 C706,414 756,332 794,284" fill="none" stroke="#ff6b6b" stroke-width="4.4" marker-end="url(#fr)"/>
+      <path d="M552,280 C648,276 726,266 790,258" fill="none" stroke="#ff6b6b" stroke-width="1.8" marker-end="url(#fr)"/>
+      <path d="M200,194 C480,14 700,64 820,208" fill="none" stroke="#ffb454" stroke-width="2.4" marker-end="url(#fo)"/>
+      <path d="M160,396 C400,566 680,474 832,312" fill="none" stroke="#93a1b0" stroke-width="1.5" stroke-dasharray="2,5" marker-end="url(#fm)"/>
+      <!-- dependenta spatiala: bucla catre BAC -->
+      <path d="M866,180 C900,140 960,180 950,240 C944,282 908,290 878,278" fill="none" stroke="#b07fd0" stroke-width="2.4" marker-end="url(#fp)"/>
+
+      <!-- etichete -->
+      <text x="266" y="70" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 11.5px sans-serif">geografie (−)</text>
+      <text x="270" y="152" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 11.5px sans-serif">r = −0,69</text>
+      <text x="298" y="226" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 11.5px sans-serif">r = +0,69</text>
+      <text x="120" y="288" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 11.5px sans-serif">r = −0,77</text>
+      <text x="284" y="320" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:600 11.5px sans-serif">r = −0,60</text>
+      <text x="272" y="420" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c4d0dc;font:700 11.5px sans-serif">r = +0,68 · prosperitatea atrage migrația</text>
+
+      <text x="694" y="136" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#7fe0a4;font:700 13px sans-serif">β = +0,45 ***</text>
+      <text x="668" y="396" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ff8a8a;font:700 13.5px sans-serif">β = −0,61 ***</text>
+      <text x="636" y="262" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ff8a8a;font:600 11.5px sans-serif">β = −0,21 *</text>
+      <text x="446" y="36" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ffd9a0;font:700 12px sans-serif">β = −0,35 * (efect direct propriu)</text>
+      <text x="418" y="546" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#a7b3c0;font:600 11.5px sans-serif">β = +0,06 (ns) · supresia dizolvată — era mobilitatea mascată</text>
+      <text x="906" y="150" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#c9a3e0;font:700 12px sans-serif">ρ = +0,28</text>
+      <text x="906" y="166" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#93a1b0;font:600 10px sans-serif">contagiune spațială</text>
+
+      <!-- noduri -->
+      <g><rect x="24" y="46" width="176" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="112" y="66" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">Distanță de</text>
+        <text x="112" y="82" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">București</text></g>
+      <g><rect x="24" y="186" width="176" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="112" y="215" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">% populație rurală</text></g>
+      <g><rect x="24" y="330" width="176" height="66" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="112" y="356" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">PIB / locuitor</text>
+        <text x="112" y="374" text-anchor="middle" style="fill:#93a1b0;font:600 10.5px sans-serif">(prosperitate)</text></g>
+      <g><rect x="400" y="70" width="212" height="62" rx="10" fill="#1f2b3a" stroke="#4a9eff" stroke-width="1.6"/>
+        <text x="506" y="95" text-anchor="middle" style="fill:#e8edf2;font:700 13px sans-serif">Densitate universitară</text>
+        <text x="506" y="114" text-anchor="middle" style="fill:#8ac0ff;font:600 12px sans-serif">(studenți %) — mediator +</text></g>
+      <g><rect x="400" y="256" width="152" height="48" rx="10" fill="#222a35" stroke="#2d3745"/>
+        <text x="476" y="276" text-anchor="middle" style="fill:#e8edf2;font:600 13px sans-serif">Șomaj</text>
+        <text x="476" y="292" text-anchor="middle" style="fill:#93a1b0;font:600 10.5px sans-serif">(deprivare)</text></g>
+      <g><rect x="400" y="402" width="214" height="62" rx="10" fill="#2b1f2a" stroke="#ff6b6b" stroke-width="1.8"/>
+        <text x="507" y="427" text-anchor="middle" style="fill:#e8edf2;font:700 13px sans-serif">Mobilitate interjudețeană</text>
+        <text x="507" y="446" text-anchor="middle" style="fill:#ff8a8a;font:600 12px sans-serif">(imigrație internă) — mediator −</text></g>
+      <g><rect x="794" y="214" width="150" height="96" rx="12" fill="#2a2416" stroke="#ffb454" stroke-width="1.8"/>
+        <text x="869" y="244" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">Rata de</text>
+        <text x="869" y="262" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">promovare</text>
+        <text x="869" y="280" text-anchor="middle" style="fill:#ffd9a0;font:700 13px sans-serif">BAC</text></g>
+    </svg>
+    <div class="clegend">
+      <span><i style="border-color:#5fd08a"></i> canal pozitiv (universitar)</span>
+      <span><i style="border-color:#ff6b6b"></i> canal negativ (migrație, deprivare)</span>
+      <span><i style="border-color:#ffb454"></i> efect direct propriu</span>
+      <span><i style="border-color:#b07fd0"></i> dependență spațială (SAR)</span>
+      <span><i style="border-color:#93a1b0;border-top-style:dotted"></i> efect dizolvat (ns)</span>
+    </div>
+    <div class="note" style="margin-top:16px">
+      <b>Modelul final, cu toate corecțiile aplicate.</b> Gradientul structural (distanță–rural–PIB, intercorelat 0,6–0,8) acționează prin <b>două canale opuse</b>, ambele mediate, plus efecte proprii:<br><br>
+      <b>(1) Canalul universitar, pozitiv</b> — β = +0,45*** (SAR). Prosperitatea și proximitatea urbană construiesc ecosisteme academice care ridică promovarea. Replicat: β = +0,47 / +0,53 / +0,47 în 2024/2025/2026.<br>
+      <b>(2) Canalul migratoriu, negativ și dominant</b> — β = −0,61*** (SAR). Aceleași județe atrag imigrație internă (r = +0,68 cu PIB), iar populația nou-venită nu poartă capitalul educațional al vechilor clase de mijloc locale. Replicat: β = −0,54 / −0,48 / −0,68. <b>Robust la excluderea Ilfov</b> (efectul se <i>întărește</i>: b = −0,68) și la regresie Huber.<br>
+      <b>(3) Ruralitatea are efect direct propriu</b> — β = −0,35*, întărit după corecția spațială: nu e doar lipsă de universități.<br>
+      <b>(4) Șomajul = deprivare</b> — β = −0,21*: ipoteza „costului de oportunitate" (job disponibil → miza BAC scade) a fost <b>respinsă</b>; semnul e invers.<br>
+      <b>(5) PIB nu are efect direct</b> — β = +0,06 (ns). „Supresia" din modelele inițiale era efectul mascat al mobilității; odată separate canalele, prosperitatea în sine nu mai prezice nimic.<br>
+      <b>(6) Dependență spațială reziduală</b> — ρ = +0,28: promovarea unui județ depinde de a vecinilor și <i>după</i> controlul tuturor predictorilor. Contagiune regională reală (practici de predare, migrație școlară transfrontalieră, cultură locală a examenului), nu doar structură comună.<br><br>
+      <i>Limite: date ecologice agregate (n = 42) — direcțiile cauzale sunt teoretice, nu experimentale; mobilitatea e proxy pe populația totală (RPL 2021), nu pe familiile liceenilor. R²<sub>LOO</sub> ≈ 0,41–0,59 este puterea explicativă onestă, out-of-sample.</i>
+    </div>
+  </div>
+
+
+  <div class="secttitle">Analiză de mediere paralelă — trei mediatori simultani (bootstrap 5000)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Descompunerea efectului fiecărei variabile structurale asupra promovării prin cei trei mediatori din modelul cauzal: <b>ln(studenți)</b>, <b>mobilitate interjudețeană</b> și <b>șomaj</b> — estimați simultan (mediere paralelă). Coeficienți standardizați; ● = efect indirect semnificativ (IC95% bootstrap nu conține 0), ○ = nesemnificativ. Verde = canal pozitiv, roșu = negativ.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:4px 0 6px" class="gridfocus"><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px">
+      <div style="font-weight:650;font-size:13.5px;color:#e8edf2">% rural</div>
+      <div style="font-size:11.5px;color:#93a1b0;margin-bottom:4px">total c = -0,41 · direct c′ = -0,35 · indirect Σ = -0,06 · n=42</div>
+      <svg viewBox="0 0 340 210" style="width:100%;height:auto;font-family:sans-serif">
+        <defs><marker id="pm00" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b6b"/></marker><marker id="pm01" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker><marker id="pm02" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker></defs>
+        <path d="M96,105 C110,72.0 118,45 130,45" fill="none" stroke="#ff6b6b" stroke-width="2.6"/><path d="M232,45 C244,45 252,72.0 264,105" fill="none" stroke="#ff6b6b" stroke-width="2.6" marker-end="url(#pm00)"/><path d="M96,105 C110,108.3 118,111 130,111" fill="none" stroke="#5fd08a" stroke-width="2.6"/><path d="M232,111 C244,111 252,108.3 264,105" fill="none" stroke="#5fd08a" stroke-width="2.6" marker-end="url(#pm01)"/><path d="M96,105 C110,144.6 118,177 130,177" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4"/><path d="M232,177 C244,177 252,144.6 264,105" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4" marker-end="url(#pm02)"/>
+        <path d="M52,128 C52,196 264,196 300,128" fill="none" stroke="#ffb454" stroke-width="1.8"/>
+        <text x="176" y="205" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#ffb454;font:700 10.5px sans-serif">direct c′ = -0,35</text>
+        <g><rect x="6" y="85" width="90" height="42" rx="8" fill="#222a35" stroke="#2d3745"/>
+          <text x="51" y="110" text-anchor="middle" style="fill:#e8edf2;font:600 11px sans-serif">% rural</text></g>
+        <g><rect x="130" y="30" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="49" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">ln(studenți)</text></g><g><rect x="130" y="96" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="115" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">mobilitate</text></g><g><rect x="130" y="162" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="181" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">șomaj</text></g>
+        <g><rect x="264" y="85" width="70" height="42" rx="8" fill="#2a2416" stroke="#ffb454"/>
+          <text x="299" y="110" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;line-height:1.7;margin-top:4px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#ff6b6b">● prin universități</span><span style="color:#e8edf2;font-weight:600">-0,33</span><span style="color:#93a1b0">[-0,57; -0,14]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#5fd08a">● prin mobilitate</span><span style="color:#e8edf2;font-weight:600">+0,37</span><span style="color:#93a1b0">[+0,20; +0,64]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#93a1b0">○ prin șomaj</span><span style="color:#e8edf2;font-weight:600">-0,10</span><span style="color:#93a1b0">[-0,23; +0,00]</span></div></div>
+    </div><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px">
+      <div style="font-weight:650;font-size:13.5px;color:#e8edf2">ln(PIB/loc)</div>
+      <div style="font-size:11.5px;color:#93a1b0;margin-bottom:4px">total c = +0,29 · direct c′ = +0,14 · indirect Σ = +0,15 · n=42</div>
+      <svg viewBox="0 0 340 210" style="width:100%;height:auto;font-family:sans-serif">
+        <defs><marker id="pm10" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker><marker id="pm11" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b6b"/></marker><marker id="pm12" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker></defs>
+        <path d="M96,105 C110,72.0 118,45 130,45" fill="none" stroke="#5fd08a" stroke-width="2.6"/><path d="M232,45 C244,45 252,72.0 264,105" fill="none" stroke="#5fd08a" stroke-width="2.6" marker-end="url(#pm10)"/><path d="M96,105 C110,108.3 118,111 130,111" fill="none" stroke="#ff6b6b" stroke-width="2.6"/><path d="M232,111 C244,111 252,108.3 264,105" fill="none" stroke="#ff6b6b" stroke-width="2.6" marker-end="url(#pm11)"/><path d="M96,105 C110,144.6 118,177 130,177" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4"/><path d="M232,177 C244,177 252,144.6 264,105" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4" marker-end="url(#pm12)"/>
+        <path d="M52,128 C52,196 264,196 300,128" fill="none" stroke="#93a1b0" stroke-width="1.8" stroke-dasharray="2,5"/>
+        <text x="176" y="205" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#93a1b0;font:700 10.5px sans-serif">direct c′ = +0,14</text>
+        <g><rect x="6" y="85" width="90" height="42" rx="8" fill="#222a35" stroke="#2d3745"/>
+          <text x="51" y="110" text-anchor="middle" style="fill:#e8edf2;font:600 11px sans-serif">ln(PIB/loc)</text></g>
+        <g><rect x="130" y="30" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="49" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">ln(studenți)</text></g><g><rect x="130" y="96" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="115" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">mobilitate</text></g><g><rect x="130" y="162" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="181" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">șomaj</text></g>
+        <g><rect x="264" y="85" width="70" height="42" rx="8" fill="#2a2416" stroke="#ffb454"/>
+          <text x="299" y="110" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;line-height:1.7;margin-top:4px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#5fd08a">● prin universități</span><span style="color:#e8edf2;font-weight:600">+0,43</span><span style="color:#93a1b0">[+0,22; +0,73]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#ff6b6b">● prin mobilitate</span><span style="color:#e8edf2;font-weight:600">-0,40</span><span style="color:#93a1b0">[-0,67; -0,14]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#93a1b0">○ prin șomaj</span><span style="color:#e8edf2;font-weight:600">+0,12</span><span style="color:#93a1b0">[-0,05; +0,29]</span></div></div>
+    </div><div style="background:#1a2029;border:1px solid #2d3745;border-radius:12px;padding:12px">
+      <div style="font-weight:650;font-size:13.5px;color:#e8edf2">ln(distanță București)</div>
+      <div style="font-size:11.5px;color:#93a1b0;margin-bottom:4px">total c = +0,41 · direct c′ = -0,07 · indirect Σ = +0,48 · n=41</div>
+      <svg viewBox="0 0 340 210" style="width:100%;height:auto;font-family:sans-serif">
+        <defs><marker id="pm20" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5fd08a"/></marker><marker id="pm21" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker><marker id="pm22" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#93a1b0"/></marker></defs>
+        <path d="M96,105 C110,72.0 118,45 130,45" fill="none" stroke="#5fd08a" stroke-width="2.6"/><path d="M232,45 C244,45 252,72.0 264,105" fill="none" stroke="#5fd08a" stroke-width="2.6" marker-end="url(#pm20)"/><path d="M96,105 C110,108.3 118,111 130,111" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4"/><path d="M232,111 C244,111 252,108.3 264,105" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4" marker-end="url(#pm21)"/><path d="M96,105 C110,144.6 118,177 130,177" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4"/><path d="M232,177 C244,177 252,144.6 264,105" fill="none" stroke="#93a1b0" stroke-width="1.6" stroke-dasharray="4,4" marker-end="url(#pm22)"/>
+        <path d="M52,128 C52,196 264,196 300,128" fill="none" stroke="#93a1b0" stroke-width="1.8" stroke-dasharray="2,5"/>
+        <text x="176" y="205" text-anchor="middle" style="paint-order:stroke;stroke:#0f1419;stroke-width:3px;fill:#93a1b0;font:700 10.5px sans-serif">direct c′ = -0,07</text>
+        <g><rect x="6" y="85" width="90" height="42" rx="8" fill="#222a35" stroke="#2d3745"/>
+          <text x="51" y="110" text-anchor="middle" style="fill:#e8edf2;font:600 11px sans-serif">ln(distanță București)</text></g>
+        <g><rect x="130" y="30" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="49" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">ln(studenți)</text></g><g><rect x="130" y="96" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="115" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">mobilitate</text></g><g><rect x="130" y="162" width="102" height="30" rx="7" fill="#1f2b3a" stroke="#2d3745"/><text x="181" y="181" text-anchor="middle" style="fill:#8ac0ff;font:600 10.5px sans-serif">șomaj</text></g>
+        <g><rect x="264" y="85" width="70" height="42" rx="8" fill="#2a2416" stroke="#ffb454"/>
+          <text x="299" y="110" text-anchor="middle" style="fill:#ffd9a0;font:700 11.5px sans-serif">BAC</text></g>
+      </svg>
+      <div style="font-size:11.5px;line-height:1.7;margin-top:4px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#5fd08a">● prin universități</span><span style="color:#e8edf2;font-weight:600">+0,27</span><span style="color:#93a1b0">[+0,11; +0,53]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#93a1b0">○ prin mobilitate</span><span style="color:#e8edf2;font-weight:600">+0,22</span><span style="color:#93a1b0">[-0,11; +0,50]</span></div><div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#93a1b0">○ prin șomaj</span><span style="color:#e8edf2;font-weight:600">-0,01</span><span style="color:#93a1b0">[-0,10; +0,10]</span></div></div>
+    </div></div>
+    <div class="note" style="margin-top:14px">
+      <b>Citire — cifrele confirmă exact diagrama cauzală.</b>
+      <b>ln(PIB):</b> cele două canale opuse aproape se anulează — prin universități <b>+0,43</b>● vs. prin mobilitate <b>−0,40</b>● — lăsând un efect total modest (+0,29) și un direct nesemnificativ (+0,14): prosperitatea ajută promovarea doar prin infrastructura academică și o sabotează prin imigrația internă pe care o atrage.
+      <b>% rural:</b> tabloul s-a schimbat față de medierea simplă — canalul universitar rămâne negativ (−0,33●: ruralul n-are universități), dar apare un canal <i>protector</i> prin mobilitate (+0,37●: județele rurale nu atrag imigrație, deci evită penalizarea compozițională); cele două se anulează, iar ce rămâne e un <b>efect direct −0,35</b> — ruralitatea penalizează promovarea în sine, nu doar prin lipsa universităților.
+      <b>ln(distanță):</b> complet mediată (direct −0,07): depărtarea de București „ajută" doar pentru că se asociază cu centre universitare regionale și cu mai puțină imigrație.
+      Canalul <b>șomaj</b> nu e semnificativ ca mediator pentru niciuna — deprivarea acționează ca factor independent, nu ca verigă a gradientului.
+      <i>Avertisment: mediere paralelă pe date ecologice (n=42), presupune absența confuzorilor mediator–rezultat; direcțiile cauzale sunt teoretice.</i>
+    </div>
+  </div>
+
+  <div class="secttitle">Eroarea de predicție pe județ — model WLS log-liniar (ponderat după nr. candidați)</div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="cap">Rezidual = rata observată − rata prezisă (puncte procentuale). <span style="color:#7fe0a4">Verde</span> = județul performează <b>peste</b> profilul său structural (rural + PIB + studenți); <span style="color:#ff8a8a">roșu</span> = <b>sub</b>. Cazurile extreme sunt cele mai interesante teoretic — abateri neexplicate de structură.</div>
+    <div style="position:relative;height:800px"><canvas id="c_resid"></canvas></div>
+  </div>
+
+  <div class="secttitle">Harta interactivă — rata de promovare sau eroarea de predicție</div>
+  <div class="card" style="margin-bottom:22px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <button id="mb_resid" class="mbtn mbtn-on">Eroare de predicție</button>
+      <button id="mb_rate" class="mbtn">Rata de promovare</button>
+      <span id="mapcap" style="color:var(--muted);font-size:12.5px;margin-left:6px"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start" class="gridmap">
+      <div style="position:relative">
+        <svg id="c_map" viewBox="13.9 44.1 6.7 4.9" style="width:100%;height:auto;background:transparent" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--muted)">
+          <span id="lg_lo"></span>
+          <div id="lg_bar" style="flex:1;height:12px;border-radius:6px"></div>
+          <span id="lg_hi"></span>
+        </div>
+      </div>
+      <div id="mapinfo" style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:330px;font-size:12.5px">
+        <div style="color:var(--muted);text-align:center;padding-top:100px">Treceți cu mouse-ul<br>peste un județ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="secttitle">Baza de date (click pe capul de coloană pentru sortare)</div>
+  <div class="tablecard">
+    <table id="tbl">
+      <thead><tr>
+        <th data-k="judet">Județ</th>
+        <th data-k="regiune">Regiune</th>
+        <th data-k="bac2026">BAC 2026 %</th>
+        <th data-k="rural_pct">Rural %</th>
+        <th data-k="pib_eur">PIB/loc. €</th>
+        <th data-k="studenti_pct">Studenți %</th>
+        <th data-k="dist_buc_km">Dist. Buc. (km)</th>
+        <th data-k="participare_pct">Participare %</th>
+        <th data-k="tehnologica_pct">Tehnol. %</th>
+        <th data-k="vocationala_pct">Vocaț. %</th>
+        <th data-k="real_pct">Real %</th>
+        <th data-k="umanist_pct">Uman. %</th>
+        <th data-k="tehnic_pct">Tehnic %</th>
+        <th data-k="servicii_pct">Serv. %</th>
+        <th data-k="resurse_pct">Res.nat. %</th>
+        <th data-k="somaj">Șomaj %</th>
+        <th data-k="salariu">Salariu net</th>
+        <th data-k="studii_sup">Studii sup. %</th>
+        <th data-k="mobilitate">Mobilit. %</th>
+        <th data-k="sup3049">Sup.30-49 %</th>
+        <th data-k="abandon">Abandon %</th>
+        <th data-k="bac24">BAC 2024 %</th>
+        <th data-k="bac25">BAC 2025 %</th>
+        <th data-k="bac_teo">BAC teor. %</th>
+        <th data-k="bac_teh">BAC tehn. %</th>
+        <th data-k="pop_mii">Pop. (mii)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>Surse și metodologie.</b><br>
+    • <b>Rata de promovare BAC 2026</b> — toate promoțiile, rezultate inițiale (înainte de contestații), 07.07.2026. Sursă: <b>Ministerul Educației și Cercetării</b> (date verificate, complete pentru toate cele 42 de unități). Media națională: 74,8%.<br>
+    • <b>% populație rurală</b> — Recensământul Populației și Locuințelor <b>RPL 2021 (INS)</b>; media națională 47,8% rural. București = 0% (unitate exclusiv urbană).<br>
+    • <b>PIB/locuitor 2023 (euro)</b> — conturi regionale <b>INS / CNSP</b>. Valori-ancoră verificate: București 46.968, Cluj 24.826, Timiș 22.723; Vaslui 7.498, Botoșani 7.594, Giurgiu 8.034; media 13.916 €. Celelalte valori sunt estimări pe seria INS 2023 (± câteva puncte) — recomand înlocuirea cu extras exact din <a href="http://statistici.insse.ro">INS Tempo (CON103)</a> pentru publicare.<br>
+    • <b>Studenți ca % din populație</b> — pe baza <b>distribuției teritoriale INS</b> a studenților care urmează efectiv cursurile în județ (nu a înmatriculărilor pe universitate, care supraestimează centrele mari prin filiale). Valori indicative; pentru precizie, INS Tempo <b>SCL103D</b> raportat la populația RPL 2021.<br>
+    • <b>Participare la BAC</b> = candidați BAC / elevi clasa a XII-a (%). Sursă: fișier încărcat — elevi din <b>Min. Educației / data.gov.ro</b> (înmatriculați 2025-2026), candidați din rapoartele oficiale pe județ (bacalaureat.edu.ro). <b>Atenție:</b> numărătorul include și promoțiile anterioare, deci rata poate depăși 100% (ex. Harghita, marcat roșu).<br>
+    • <b>Filieră (tehnologică / vocațională / teoretică)</b> — pondere din elevii clasei a XII-a. Sursă: fișier încărcat — <b>Min. Educației / data.gov.ro</b> (elevi înmatriculați 2025-2026, nivel liceal, clasa a XII-a). <b>Rezultat notabil:</b> % tehnologică nu corelează cu promovarea la nivel de județ (r ≈ 0), deși filiera tehnologică promovează cu ~30 p.p. mai puțin la nivel național — compoziția pe filiere nu explică variația <i>între</i> județe.<br>
+    • <b>Indicatori socio-economici</b> — șomaj (INS TEMPO SOM103B, apr. 2026), salariu mediu net (FOM106E, 2024), % studii superioare și mobilitate interjudețeană (RPL 2021, tab. P08 / 4.3 — proxy la nivel de populație totală, nu doar liceeni), rate BAC pe filiere per județ (bacalaureat.edu.ro, agregare cu neprezentații în numitor — de aceea diferă ușor de rata generală). Sursă: fișier încărcat, cu URL-uri de audit în foaia Metodologie.<br>
+    • <b>Corelații Pearson (n=42)</b> calculate direct pe date. Fără București (outlier peri-urban frecvent semnalat) valorile rămân practic identice. <b>Atenție statistică</b>: județele nu sunt observații independente de aceeași „greutate” (variază enorm ca populație) și București/Ilfov distorsionează scala; pentru un model corect recomand ponderare după numărul de candidați și, eventual, controlarea nivelului de educație al populației adulte (RPL 2021, tab. 3.01).
+  </div>
+
+  <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:12.5px">
+    Realizat de <b style="color:var(--ink)">Adrian Hatos</b> cu Claude și Codex, folosind date disponibile online.
+  </div>
+</div>
+
+<script>
+const DATA = [{"judet": "Cluj", "cod": "CJ", "regiune": "Nord-Vest", "bac2026": 85.3, "rural_pct": 33.0, "pib_eur": 24826, "pop_mii": 691, "studenti_mii": 67.0, "studenti_pct": 9.7, "dist_buc_km": 445, "elevi_xii": 5005, "candidati_bac": 4405, "participare_pct": 88.0, "teoretica_pct": 56.2, "tehnologica_pct": 31.6, "vocationala_pct": 12.1, "real_pct": 31.5, "umanist_pct": 24.8, "tehnic_pct": 13.3, "servicii_pct": 15.2, "resurse_pct": 3.1, "mobilitate": 17.98, "nascuti_alt": 22.67, "somaj": 1.5, "studii_sup": 24.62, "bac_teo": 91.8, "bac_teh": 66.67, "bac_voc": 80.23, "salariu": 5921, "gap_teo_teh": 25.1, "sup3049": 41.6, "abandon": 1.1, "pred": 81.01, "resid": 4.29, "ln_PIB_c": 3.2118914911, "ln_stud_c": 2.2721258855, "bacf24": 86.9, "bacf25": 87.0, "bac24": 85.3, "bac25": 85.4, "som24": 1.4, "som25": 1.5, "w24": 4560, "w25": 3587, "ln_PIB": 3.2118914911, "ln_stud": 2.2721258855, "hat": 0.147, "cook": 0.043, "dfb_mob": -0.099, "t_ext": 1.22}, {"judet": "Alba", "cod": "AB", "regiune": "Centru", "bac2026": 81.4, "rural_pct": 42.0, "pib_eur": 16500, "pop_mii": 324, "studenti_mii": 7.0, "studenti_pct": 2.16, "dist_buc_km": 350, "elevi_xii": 2478, "candidati_bac": 2127, "participare_pct": 85.8, "teoretica_pct": 42.2, "tehnologica_pct": 41.3, "vocationala_pct": 16.4, "real_pct": 25.6, "umanist_pct": 16.7, "tehnic_pct": 19.6, "servicii_pct": 13.9, "resurse_pct": 7.8, "mobilitate": 11.71, "nascuti_alt": 14.6, "somaj": 4.0, "studii_sup": 14.49, "bac_teo": 88.79, "bac_teh": 56.97, "bac_voc": 87.44, "salariu": 4326, "gap_teo_teh": 31.8, "sup3049": 26.8, "abandon": 1.0, "pred": 77.3, "resid": 4.1, "ln_PIB_c": 2.8033603809, "ln_stud_c": 0.7701082217, "bacf24": 82.1, "bacf25": 78.1, "bac24": 80.3, "bac25": 76.1, "som24": 3.45, "som25": 4.2, "w24": 2325, "w25": 1869, "ln_PIB": 2.8033603809, "ln_stud": 0.7701082217, "hat": 0.06, "cook": 0.014, "dfb_mob": -0.152, "t_ext": 1.14}, {"judet": "Brașov", "cod": "BV", "regiune": "Centru", "bac2026": 81.3, "rural_pct": 26.0, "pib_eur": 18200, "pop_mii": 549, "studenti_mii": 21.0, "studenti_pct": 3.83, "dist_buc_km": 170, "elevi_xii": 3865, "candidati_bac": 3474, "participare_pct": 89.9, "teoretica_pct": 52.0, "tehnologica_pct": 39.4, "vocationala_pct": 8.6, "real_pct": 35.7, "umanist_pct": 16.3, "tehnic_pct": 17.8, "servicii_pct": 14.6, "resurse_pct": 7.0, "mobilitate": 25.19, "nascuti_alt": 31.72, "somaj": 2.8, "studii_sup": 20.78, "bac_teo": 89.05, "bac_teh": 64.98, "bac_voc": 78.59, "salariu": 5019, "gap_teo_teh": 24.1, "sup3049": 37.4, "abandon": 2.3, "pred": 74.92, "resid": 6.38, "ln_PIB_c": 2.9014215941, "ln_stud_c": 1.3428648032, "bacf24": 84.1, "bacf25": 82.5, "bac24": 82.6, "bac25": 81.0, "som24": 2.65, "som25": 2.94, "w24": 3384, "w25": 2905, "ln_PIB": 2.9014215941, "ln_stud": 1.3428648032, "hat": 0.144, "cook": 0.091, "dfb_mob": 0.384, "t_ext": 1.87}, {"judet": "Iași", "cod": "IS", "regiune": "Nord-Est", "bac2026": 81.1, "rural_pct": 56.4, "pib_eur": 13800, "pop_mii": 761, "studenti_mii": 53.0, "studenti_pct": 6.96, "dist_buc_km": 390, "elevi_xii": 6099, "candidati_bac": 5292, "participare_pct": 86.8, "teoretica_pct": 40.7, "tehnologica_pct": 51.0, "vocationala_pct": 8.4, "real_pct": 24.1, "umanist_pct": 16.6, "tehnic_pct": 20.3, "servicii_pct": 24.8, "resurse_pct": 5.9, "mobilitate": 11.03, "nascuti_alt": 17.43, "somaj": 3.4, "studii_sup": 16.16, "bac_teo": 93.51, "bac_teh": 61.7, "bac_voc": 81.45, "salariu": 5098, "gap_teo_teh": 31.8, "sup3049": 29.9, "abandon": 1.1, "pred": 79.18, "resid": 1.92, "ln_PIB_c": 2.6246685922, "ln_stud_c": 1.9401794743, "bacf24": 82.3, "bacf25": 83.2, "bac24": 80.8, "bac25": 81.4, "som24": 3.65, "som25": 3.44, "w24": 5154, "w25": 4402, "ln_PIB": 2.6246685922, "ln_stud": 1.9401794743, "hat": 0.25, "cook": 0.032, "dfb_mob": 0.128, "t_ext": 0.75}, {"judet": "Brăila", "cod": "BR", "regiune": "Sud-Est", "bac2026": 79.8, "rural_pct": 35.0, "pib_eur": 11400, "pop_mii": 285, "studenti_mii": 3.0, "studenti_pct": 1.05, "dist_buc_km": 200, "elevi_xii": 2277, "candidati_bac": 1682, "participare_pct": 73.9, "teoretica_pct": 48.7, "tehnologica_pct": 40.2, "vocationala_pct": 11.1, "real_pct": 26.0, "umanist_pct": 22.6, "tehnic_pct": 14.9, "servicii_pct": 15.6, "resurse_pct": 9.7, "mobilitate": 12.56, "nascuti_alt": 16.39, "somaj": 5.4, "studii_sup": 11.72, "bac_teo": 90.54, "bac_teh": 47.62, "bac_voc": 78.29, "salariu": 3912, "gap_teo_teh": 42.9, "sup3049": 22.3, "abandon": 0.6, "pred": 75.16, "resid": 4.64, "ln_PIB_c": 2.4336133554, "ln_stud_c": 0.0487901642, "bacf24": 84.2, "bacf25": 83.7, "bac24": 82.6, "bac25": 81.3, "som24": 4.91, "som25": 5.21, "w24": 1719, "w25": 1396, "ln_PIB": 2.4336133554, "ln_stud": 0.0487901642, "hat": 0.137, "cook": 0.048, "dfb_mob": -0.008, "t_ext": 1.37}, {"judet": "București", "cod": "B", "regiune": "București-Ilfov", "bac2026": 79.6, "rural_pct": 0.0, "pib_eur": 46968, "pop_mii": 1716, "studenti_mii": 170.0, "studenti_pct": 9.91, "dist_buc_km": 0, "elevi_xii": 19489, "candidati_bac": 17897, "participare_pct": 91.8, "teoretica_pct": 59.3, "tehnologica_pct": 33.0, "vocationala_pct": 7.8, "real_pct": 31.9, "umanist_pct": 27.3, "tehnic_pct": 13.6, "servicii_pct": 16.8, "resurse_pct": 2.6, "mobilitate": 31.23, "nascuti_alt": 39.74, "somaj": 0.4, "studii_sup": 35.15, "bac_teo": 88.43, "bac_teh": 56.12, "bac_voc": 69.31, "salariu": 6730, "gap_teo_teh": 32.3, "sup3049": 55.6, "abandon": 0.6, "pred": 79.53, "resid": 0.07, "ln_PIB_c": 3.8494665188, "ln_stud_c": 2.2935443483, "bacf24": 83.6, "bacf25": 81.4, "bac24": 82.1, "bac25": 79.7, "som24": 0.69, "som25": 0.47, "w24": 17093, "w25": 13573, "ln_PIB": 3.8494665188, "ln_stud": 2.2935443483, "hat": 0.48, "cook": 0.011, "dfb_mob": 0.072, "t_ext": -0.26}, {"judet": "Bacău", "cod": "BC", "regiune": "Nord-Est", "bac2026": 79.6, "rural_pct": 55.0, "pib_eur": 11000, "pop_mii": 561, "studenti_mii": 6.0, "studenti_pct": 1.07, "dist_buc_km": 290, "elevi_xii": 4588, "candidati_bac": 3840, "participare_pct": 83.7, "teoretica_pct": 56.6, "tehnologica_pct": 34.2, "vocationala_pct": 9.1, "real_pct": 26.8, "umanist_pct": 29.9, "tehnic_pct": 7.6, "servicii_pct": 21.1, "resurse_pct": 5.5, "mobilitate": 8.74, "nascuti_alt": 13.13, "somaj": 1.6, "studii_sup": 10.05, "bac_teo": 89.75, "bac_teh": 52.06, "bac_voc": 76.82, "salariu": 4474, "gap_teo_teh": 37.7, "sup3049": 19.4, "abandon": 1.5, "pred": 76.67, "resid": 2.93, "ln_PIB_c": 2.3978952728, "ln_stud_c": 0.0676586485, "bacf24": 84.5, "bacf25": 84.0, "bac24": 82.8, "bac25": 82.1, "som24": 2.17, "som25": 1.6, "w24": 3596, "w25": 3139, "ln_PIB": 2.3978952728, "ln_stud": 0.0676586485, "hat": 0.125, "cook": 0.016, "dfb_mob": -0.057, "t_ext": 0.83}, {"judet": "Bihor", "cod": "BH", "regiune": "Nord-Vest", "bac2026": 79.4, "rural_pct": 49.0, "pib_eur": 14600, "pop_mii": 551, "studenti_mii": 16.0, "studenti_pct": 2.9, "dist_buc_km": 575, "elevi_xii": 4234, "candidati_bac": 3540, "participare_pct": 83.6, "teoretica_pct": 50.4, "tehnologica_pct": 39.6, "vocationala_pct": 10.0, "real_pct": 25.6, "umanist_pct": 24.8, "tehnic_pct": 12.8, "servicii_pct": 20.8, "resurse_pct": 6.1, "mobilitate": 9.49, "nascuti_alt": 12.28, "somaj": 2.2, "studii_sup": 16.64, "bac_teo": 86.09, "bac_teh": 57.49, "bac_voc": 81.67, "salariu": 4095, "gap_teo_teh": 28.6, "sup3049": 29.3, "abandon": 1.3, "pred": 79.47, "resid": -0.07, "ln_PIB_c": 2.6810215287, "ln_stud_c": 1.064710737, "bacf24": 79.4, "bacf25": 78.8, "bac24": 77.4, "bac25": 76.4, "som24": 2.38, "som25": 2.18, "w24": 3787, "w25": 2798, "ln_PIB": 2.6810215287, "ln_stud": 1.064710737, "hat": 0.089, "cook": 0.0, "dfb_mob": -0.001, "t_ext": 0.01}, {"judet": "Sibiu", "cod": "SB", "regiune": "Centru", "bac2026": 78.1, "rural_pct": 35.0, "pib_eur": 19000, "pop_mii": 375, "studenti_mii": 16.0, "studenti_pct": 4.27, "dist_buc_km": 275, "elevi_xii": 2836, "candidati_bac": 2531, "participare_pct": 89.2, "teoretica_pct": 45.1, "tehnologica_pct": 45.4, "vocationala_pct": 9.4, "real_pct": 22.5, "umanist_pct": 22.6, "tehnic_pct": 20.7, "servicii_pct": 18.6, "resurse_pct": 6.1, "mobilitate": 19.15, "nascuti_alt": 24.12, "somaj": 3.0, "studii_sup": 18.07, "bac_teo": 88.4, "bac_teh": 59.28, "bac_voc": 85.11, "salariu": 4942, "gap_teo_teh": 29.1, "sup3049": 32.4, "abandon": 1.3, "pred": 76.91, "resid": 1.19, "ln_PIB_c": 2.9444389792, "ln_stud_c": 1.4516138272, "bacf24": 83.3, "bacf25": 82.4, "bac24": 81.1, "bac25": 80.1, "som24": 2.95, "som25": 3.13, "w24": 2545, "w25": 1977, "ln_PIB": 2.9444389792, "ln_stud": 1.4516138272, "hat": 0.07, "cook": 0.001, "dfb_mob": 0.016, "t_ext": 0.33}, {"judet": "Galați", "cod": "GL", "regiune": "Sud-Est", "bac2026": 77.7, "rural_pct": 44.0, "pib_eur": 11500, "pop_mii": 505, "studenti_mii": 15.0, "studenti_pct": 2.97, "dist_buc_km": 230, "elevi_xii": 4263, "candidati_bac": 3306, "participare_pct": 77.6, "teoretica_pct": 48.2, "tehnologica_pct": 45.3, "vocationala_pct": 6.5, "real_pct": 27.6, "umanist_pct": 20.6, "tehnic_pct": 17.5, "servicii_pct": 18.2, "resurse_pct": 9.6, "mobilitate": 11.01, "nascuti_alt": 16.33, "somaj": 6.1, "studii_sup": 12.25, "bac_teo": 90.28, "bac_teh": 51.74, "bac_voc": 73.82, "salariu": 4276, "gap_teo_teh": 38.5, "sup3049": 22.9, "abandon": 1.0, "pred": 77.04, "resid": 0.66, "ln_PIB_c": 2.4423470354, "ln_stud_c": 1.0885619528, "bacf24": 84.7, "bacf25": 82.9, "bac24": 83.4, "bac25": 80.9, "som24": 5.55, "som25": 6.48, "w24": 3183, "w25": 2648, "ln_PIB": 2.4423470354, "ln_stud": 1.0885619528, "hat": 0.136, "cook": 0.003, "dfb_mob": 0.045, "t_ext": 0.33}, {"judet": "Satu Mare", "cod": "SM", "regiune": "Nord-Vest", "bac2026": 77.5, "rural_pct": 55.0, "pib_eur": 12500, "pop_mii": 328, "studenti_mii": 2.0, "studenti_pct": 0.61, "dist_buc_km": 615, "elevi_xii": 2267, "candidati_bac": 1871, "participare_pct": 82.5, "teoretica_pct": 50.2, "tehnologica_pct": 37.4, "vocationala_pct": 12.3, "real_pct": 26.9, "umanist_pct": 23.4, "tehnic_pct": 16.8, "servicii_pct": 17.3, "resurse_pct": 3.4, "mobilitate": 7.53, "nascuti_alt": 9.38, "somaj": 4.7, "studii_sup": 11.9, "bac_teo": 88.6, "bac_teh": 51.31, "bac_voc": 75.35, "salariu": 4094, "gap_teo_teh": 37.3, "sup3049": 20.3, "abandon": 2.0, "pred": 73.64, "resid": 3.86, "ln_PIB_c": 2.5257286443, "ln_stud_c": -0.4942963218, "bacf24": 77.4, "bacf25": 78.6, "bac24": 75.4, "bac25": 75.6, "som24": 5.14, "som25": 4.84, "w24": 1858, "w25": 1472, "ln_PIB": 2.5257286443, "ln_stud": -0.4942963218, "hat": 0.063, "cook": 0.013, "dfb_mob": -0.192, "t_ext": 1.07}, {"judet": "Argeș", "cod": "AG", "regiune": "Sud-Muntenia", "bac2026": 77.0, "rural_pct": 52.0, "pib_eur": 15000, "pop_mii": 570, "studenti_mii": 8.0, "studenti_pct": 1.4, "dist_buc_km": 115, "elevi_xii": 5135, "candidati_bac": 4197, "participare_pct": 81.7, "teoretica_pct": 45.0, "tehnologica_pct": 45.7, "vocationala_pct": 9.3, "real_pct": 24.6, "umanist_pct": 20.4, "tehnic_pct": 27.5, "servicii_pct": 12.2, "resurse_pct": 6.1, "mobilitate": 10.54, "nascuti_alt": 14.52, "somaj": 4.3, "studii_sup": 16.07, "bac_teo": 87.97, "bac_teh": 55.22, "bac_voc": 70.4, "salariu": 4729, "gap_teo_teh": 32.8, "sup3049": 28.6, "abandon": 0.8, "pred": 75.0, "resid": 2.0, "ln_PIB_c": 2.7080502011, "ln_stud_c": 0.3364722366, "bacf24": 80.7, "bacf25": 79.0, "bac24": 79.1, "bac25": 76.9, "som24": 3.73, "som25": 3.9, "w24": 4285, "w25": 3405, "ln_PIB": 2.7080502011, "ln_stud": 0.3364722366, "hat": 0.065, "cook": 0.004, "dfb_mob": -0.062, "t_ext": 0.58}, {"judet": "Suceava", "cod": "SV", "regiune": "Nord-Est", "bac2026": 75.9, "rural_pct": 57.0, "pib_eur": 9600, "pop_mii": 658, "studenti_mii": 8.0, "studenti_pct": 1.22, "dist_buc_km": 435, "elevi_xii": 5770, "candidati_bac": 4904, "participare_pct": 85.0, "teoretica_pct": 47.3, "tehnologica_pct": 44.2, "vocationala_pct": 8.4, "real_pct": 23.2, "umanist_pct": 24.1, "tehnic_pct": 14.8, "servicii_pct": 20.2, "resurse_pct": 9.2, "mobilitate": 6.85, "nascuti_alt": 8.75, "somaj": 6.5, "studii_sup": 9.97, "bac_teo": 86.52, "bac_teh": 51.91, "bac_voc": 78.98, "salariu": 4071, "gap_teo_teh": 34.6, "sup3049": 19.2, "abandon": 0.7, "pred": 74.57, "resid": 1.33, "ln_PIB_c": 2.2617630985, "ln_stud_c": 0.1988508587, "bacf24": 81.0, "bacf25": 77.7, "bac24": 79.1, "bac25": 75.7, "som24": 6.68, "som25": 6.65, "w24": 4937, "w25": 3934, "ln_PIB": 2.2617630985, "ln_stud": 0.1988508587, "hat": 0.097, "cook": 0.005, "dfb_mob": 0.038, "t_ext": 0.52}, {"judet": "Prahova", "cod": "PH", "regiune": "Sud-Muntenia", "bac2026": 75.8, "rural_pct": 48.0, "pib_eur": 15200, "pop_mii": 726, "studenti_mii": 5.5, "studenti_pct": 0.76, "dist_buc_km": 60, "elevi_xii": 5895, "candidati_bac": 5397, "participare_pct": 91.6, "teoretica_pct": 45.4, "tehnologica_pct": 48.3, "vocationala_pct": 6.4, "real_pct": 26.5, "umanist_pct": 18.9, "tehnic_pct": 17.5, "servicii_pct": 23.2, "resurse_pct": 7.5, "mobilitate": 10.48, "nascuti_alt": 13.23, "somaj": 2.3, "studii_sup": 14.82, "bac_teo": 86.32, "bac_teh": 56.99, "bac_voc": 90.83, "salariu": 4747, "gap_teo_teh": 29.3, "sup3049": 27.7, "abandon": 0.6, "pred": 75.26, "resid": 0.54, "ln_PIB_c": 2.7212954279, "ln_stud_c": -0.2744368457, "bacf24": 79.5, "bacf25": 76.5, "bac24": 78.0, "bac25": 74.4, "som24": 2.42, "som25": 2.21, "w24": 5415, "w25": 4374, "ln_PIB": 2.7212954279, "ln_stud": -0.2744368457, "hat": 0.111, "cook": 0.0, "dfb_mob": -0.021, "t_ext": 0.08}, {"judet": "Buzău", "cod": "BZ", "regiune": "Sud-Est", "bac2026": 75.5, "rural_pct": 58.0, "pib_eur": 10500, "pop_mii": 393, "studenti_mii": 1.5, "studenti_pct": 0.38, "dist_buc_km": 110, "elevi_xii": 3267, "candidati_bac": 2634, "participare_pct": 80.6, "teoretica_pct": 48.3, "tehnologica_pct": 41.6, "vocationala_pct": 10.1, "real_pct": 24.5, "umanist_pct": 23.9, "tehnic_pct": 16.5, "servicii_pct": 18.4, "resurse_pct": 6.7, "mobilitate": 10.78, "nascuti_alt": 12.18, "somaj": 3.9, "studii_sup": 10.45, "bac_teo": 83.75, "bac_teh": 53.85, "bac_voc": 65.43, "salariu": 4067, "gap_teo_teh": 29.9, "sup3049": 20.3, "abandon": 2.2, "pred": 70.72, "resid": 4.78, "ln_PIB_c": 2.3513752572, "ln_stud_c": -0.9675840263, "bacf24": 81.7, "bacf25": 79.0, "bac24": 80.1, "bac25": 77.5, "som24": 4.95, "som25": 4.05, "w24": 2558, "w25": 2106, "ln_PIB": 2.3513752572, "ln_stud": -0.9675840263, "hat": 0.048, "cook": 0.014, "dfb_mob": -0.047, "t_ext": 1.32}, {"judet": "Bistrița-Năsăud", "cod": "BN", "regiune": "Nord-Vest", "bac2026": 74.7, "rural_pct": 62.0, "pib_eur": 12000, "pop_mii": 277, "studenti_mii": 1.5, "studenti_pct": 0.54, "dist_buc_km": 440, "elevi_xii": 2362, "candidati_bac": 2022, "participare_pct": 85.6, "teoretica_pct": 49.9, "tehnologica_pct": 37.1, "vocationala_pct": 13.0, "real_pct": 26.0, "umanist_pct": 24.0, "tehnic_pct": 9.3, "servicii_pct": 18.0, "resurse_pct": 9.9, "mobilitate": 8.24, "nascuti_alt": 10.44, "somaj": 3.4, "studii_sup": 10.87, "bac_teo": 88.87, "bac_teh": 47.14, "bac_voc": 71.99, "salariu": 3942, "gap_teo_teh": 41.7, "sup3049": 19.5, "abandon": 0.7, "pred": 72.71, "resid": 1.99, "ln_PIB_c": 2.4849066498, "ln_stud_c": -0.6161861394, "bacf24": 81.9, "bacf25": 76.4, "bac24": 80.0, "bac25": 74.5, "som24": 3.49, "som25": 3.46, "w24": 1992, "w25": 1548, "ln_PIB": 2.4849066498, "ln_stud": -0.6161861394, "hat": 0.082, "cook": 0.005, "dfb_mob": -0.075, "t_ext": 0.55}, {"judet": "Dolj", "cod": "DJ", "regiune": "Sud-Vest Oltenia", "bac2026": 74.6, "rural_pct": 46.0, "pib_eur": 13000, "pop_mii": 610, "studenti_mii": 22.0, "studenti_pct": 3.61, "dist_buc_km": 235, "elevi_xii": 5088, "candidati_bac": 3964, "participare_pct": 77.9, "teoretica_pct": 45.0, "tehnologica_pct": 44.8, "vocationala_pct": 10.2, "real_pct": 25.4, "umanist_pct": 19.6, "tehnic_pct": 27.2, "servicii_pct": 11.6, "resurse_pct": 6.0, "mobilitate": 8.97, "nascuti_alt": 12.74, "somaj": 8.5, "studii_sup": 16.09, "bac_teo": 87.27, "bac_teh": 33.16, "bac_voc": 81.44, "salariu": 4520, "gap_teo_teh": 54.1, "sup3049": 29.7, "abandon": 1.6, "pred": 76.73, "resid": -2.13, "ln_PIB_c": 2.5649493575, "ln_stud_c": 1.2837077723, "bacf24": 77.6, "bacf25": 74.4, "bac24": 75.7, "bac25": 72.8, "som24": 8.88, "som25": 8.6, "w24": 3800, "w25": 3001, "ln_PIB": 2.5649493575, "ln_stud": 1.2837077723, "hat": 0.25, "cook": 0.01, "dfb_mob": -0.039, "t_ext": -0.42}, {"judet": "Botoșani", "cod": "BT", "regiune": "Nord-Est", "bac2026": 74.4, "rural_pct": 58.0, "pib_eur": 7594, "pop_mii": 375, "studenti_mii": 1.0, "studenti_pct": 0.27, "dist_buc_km": 450, "elevi_xii": 3066, "candidati_bac": 2523, "participare_pct": 82.3, "teoretica_pct": 61.4, "tehnologica_pct": 30.0, "vocationala_pct": 8.6, "real_pct": 28.4, "umanist_pct": 33.1, "tehnic_pct": 9.3, "servicii_pct": 9.8, "resurse_pct": 10.9, "mobilitate": 7.3, "nascuti_alt": 7.87, "somaj": 3.6, "studii_sup": 7.95, "bac_teo": 81.57, "bac_teh": 44.16, "bac_voc": 72.97, "salariu": 3941, "gap_teo_teh": 37.4, "sup3049": 14.5, "abandon": 0.7, "pred": 71.98, "resid": 2.42, "ln_PIB_c": 2.0273584618, "ln_stud_c": -1.30933332, "bacf24": 76.9, "bacf25": 74.4, "bac24": 75.3, "bac25": 72.2, "som24": 4.4, "som25": 3.71, "w24": 2711, "w25": 2125, "ln_PIB": 2.0273584618, "ln_stud": -1.30933332, "hat": 0.167, "cook": 0.017, "dfb_mob": -0.014, "t_ext": 0.71}, {"judet": "Neamț", "cod": "NT", "regiune": "Nord-Est", "bac2026": 74.3, "rural_pct": 62.0, "pib_eur": 10000, "pop_mii": 434, "studenti_mii": 2.0, "studenti_pct": 0.46, "dist_buc_km": 330, "elevi_xii": 3598, "candidati_bac": 3089, "participare_pct": 85.9, "teoretica_pct": 43.3, "tehnologica_pct": 43.2, "vocationala_pct": 13.4, "real_pct": 24.0, "umanist_pct": 19.3, "tehnic_pct": 15.9, "servicii_pct": 15.6, "resurse_pct": 11.8, "mobilitate": 9.14, "nascuti_alt": 11.87, "somaj": 5.7, "studii_sup": 10.36, "bac_teo": 88.39, "bac_teh": 53.85, "bac_voc": 66.31, "salariu": 4013, "gap_teo_teh": 34.5, "sup3049": 20.4, "abandon": 0.6, "pred": 70.34, "resid": 3.96, "ln_PIB_c": 2.302585093, "ln_stud_c": -0.7765287895, "bacf24": 79.7, "bacf25": 79.1, "bac24": 78.2, "bac25": 77.1, "som24": 5.59, "som25": 5.66, "w24": 3089, "w25": 2668, "ln_PIB": 2.302585093, "ln_stud": -0.7765287895, "hat": 0.05, "cook": 0.012, "dfb_mob": 0.023, "t_ext": 1.16}, {"judet": "Covasna", "cod": "CV", "regiune": "Centru", "bac2026": 74.0, "rural_pct": 50.0, "pib_eur": 11000, "pop_mii": 199, "studenti_mii": 0.5, "studenti_pct": 0.25, "dist_buc_km": 195, "elevi_xii": 1290, "candidati_bac": 1210, "participare_pct": 93.8, "teoretica_pct": 51.2, "tehnologica_pct": 30.7, "vocationala_pct": 18.1, "real_pct": 27.0, "umanist_pct": 24.2, "tehnic_pct": 14.4, "servicii_pct": 10.8, "resurse_pct": 5.4, "mobilitate": 11.55, "nascuti_alt": 13.17, "somaj": 6.2, "studii_sup": 10.58, "bac_teo": 89.2, "bac_teh": 31.6, "bac_voc": 74.39, "salariu": 3896, "gap_teo_teh": 57.6, "sup3049": 18.8, "abandon": 2.8, "pred": 68.84, "resid": 5.16, "ln_PIB_c": 2.3978952728, "ln_stud_c": -1.3862943611, "bacf24": 69.6, "bacf25": 71.2, "bac24": 67.0, "bac25": 67.6, "som24": 5.09, "som25": 6.48, "w24": 1280, "w25": 1144, "ln_PIB": 2.3978952728, "ln_stud": -1.3862943611, "hat": 0.088, "cook": 0.033, "dfb_mob": -0.127, "t_ext": 1.45}, {"judet": "Constanța", "cod": "CT", "regiune": "Sud-Est", "bac2026": 73.8, "rural_pct": 30.0, "pib_eur": 18800, "pop_mii": 685, "studenti_mii": 22.0, "studenti_pct": 3.21, "dist_buc_km": 225, "elevi_xii": 6025, "candidati_bac": 5035, "participare_pct": 83.6, "teoretica_pct": 43.6, "tehnologica_pct": 47.0, "vocationala_pct": 9.3, "real_pct": 24.9, "umanist_pct": 18.7, "tehnic_pct": 18.6, "servicii_pct": 19.0, "resurse_pct": 9.5, "mobilitate": 18.8, "nascuti_alt": 26.74, "somaj": 2.1, "studii_sup": 18.28, "bac_teo": 87.39, "bac_teh": 52.84, "bac_voc": 73.38, "salariu": 4491, "gap_teo_teh": 34.6, "sup3049": 32.4, "abandon": 1.8, "pred": 77.67, "resid": -3.87, "ln_PIB_c": 2.9338568698, "ln_stud_c": 1.1662709371, "bacf24": 77.1, "bacf25": 76.2, "bac24": 75.4, "bac25": 74.0, "som24": 2.28, "som25": 2.37, "w24": 4830, "w25": 4014, "ln_PIB": 2.9338568698, "ln_stud": 1.1662709371, "hat": 0.082, "cook": 0.019, "dfb_mob": 0.043, "t_ext": -1.12}, {"judet": "Mureș", "cod": "MS", "regiune": "Centru", "bac2026": 73.6, "rural_pct": 52.0, "pib_eur": 13000, "pop_mii": 518, "studenti_mii": 15.0, "studenti_pct": 2.9, "dist_buc_km": 335, "elevi_xii": 3637, "candidati_bac": 3200, "participare_pct": 88.0, "teoretica_pct": 50.9, "tehnologica_pct": 39.4, "vocationala_pct": 9.7, "real_pct": 28.0, "umanist_pct": 22.9, "tehnic_pct": 15.7, "servicii_pct": 18.6, "resurse_pct": 5.1, "mobilitate": 9.47, "nascuti_alt": 11.49, "somaj": 2.8, "studii_sup": 13.12, "bac_teo": 83.07, "bac_teh": 47.2, "bac_voc": 82.71, "salariu": 4492, "gap_teo_teh": 35.9, "sup3049": 24.3, "abandon": 1.7, "pred": 78.67, "resid": -5.07, "ln_PIB_c": 2.5649493575, "ln_stud_c": 1.064710737, "bacf24": 73.7, "bacf25": 74.6, "bac24": 70.8, "bac25": 72.7, "som24": 2.92, "som25": 2.54, "w24": 3379, "w25": 2694, "ln_PIB": 2.5649493575, "ln_stud": 1.064710737, "hat": 0.095, "cook": 0.031, "dfb_mob": 0.011, "t_ext": -1.35}, {"judet": "Vrancea", "cod": "VN", "regiune": "Sud-Est", "bac2026": 72.8, "rural_pct": 61.0, "pib_eur": 10000, "pop_mii": 317, "studenti_mii": 0.8, "studenti_pct": 0.25, "dist_buc_km": 185, "elevi_xii": 2704, "candidati_bac": 2177, "participare_pct": 80.5, "teoretica_pct": 41.5, "tehnologica_pct": 48.2, "vocationala_pct": 10.3, "real_pct": 17.8, "umanist_pct": 23.8, "tehnic_pct": 14.4, "servicii_pct": 24.0, "resurse_pct": 9.8, "mobilitate": 9.13, "nascuti_alt": 10.67, "somaj": 1.9, "studii_sup": 9.61, "bac_teo": 82.82, "bac_teh": 49.28, "bac_voc": 80.43, "salariu": 3890, "gap_teo_teh": 33.5, "sup3049": 17.9, "abandon": 3.0, "pred": 71.3, "resid": 1.5, "ln_PIB_c": 2.302585093, "ln_stud_c": -1.3862943611, "bacf24": 76.9, "bacf25": 76.2, "bac24": 75.2, "bac25": 74.6, "som24": 2.13, "som25": 1.91, "w24": 2166, "w25": 1675, "ln_PIB": 2.302585093, "ln_stud": -1.3862943611, "hat": 0.155, "cook": 0.004, "dfb_mob": -0.052, "t_ext": 0.37}, {"judet": "Maramureș", "cod": "MM", "regiune": "Nord-Vest", "bac2026": 72.5, "rural_pct": 41.0, "pib_eur": 11000, "pop_mii": 458, "studenti_mii": 5.0, "studenti_pct": 1.09, "dist_buc_km": 600, "elevi_xii": 3668, "candidati_bac": 3113, "participare_pct": 84.9, "teoretica_pct": 53.6, "tehnologica_pct": 34.3, "vocationala_pct": 12.1, "real_pct": 23.7, "umanist_pct": 29.9, "tehnic_pct": 15.0, "servicii_pct": 14.2, "resurse_pct": 5.2, "mobilitate": 7.73, "nascuti_alt": 10.69, "somaj": 2.9, "studii_sup": 12.47, "bac_teo": 78.17, "bac_teh": 52.3, "bac_voc": 77.32, "salariu": 4177, "gap_teo_teh": 25.9, "sup3049": 21.9, "abandon": 1.2, "pred": 78.59, "resid": -6.09, "ln_PIB_c": 2.3978952728, "ln_stud_c": 0.0861776962, "bacf24": 74.7, "bacf25": 74.4, "bac24": 72.3, "bac25": 71.6, "som24": 2.4, "som25": 2.9, "w24": 3281, "w25": 2394, "ln_PIB": 2.3978952728, "ln_stud": 0.0861776962, "hat": 0.151, "cook": 0.092, "dfb_mob": 0.289, "t_ext": -1.82}, {"judet": "Hunedoara", "cod": "HD", "regiune": "Vest", "bac2026": 71.5, "rural_pct": 24.0, "pib_eur": 13500, "pop_mii": 361, "studenti_mii": 4.0, "studenti_pct": 1.11, "dist_buc_km": 365, "elevi_xii": 3041, "candidati_bac": 2347, "participare_pct": 77.2, "teoretica_pct": 44.7, "tehnologica_pct": 46.9, "vocationala_pct": 8.4, "real_pct": 26.7, "umanist_pct": 18.0, "tehnic_pct": 22.0, "servicii_pct": 19.7, "resurse_pct": 5.2, "mobilitate": 20.79, "nascuti_alt": 27.33, "somaj": 5.1, "studii_sup": 15.79, "bac_teo": 81.93, "bac_teh": 38.11, "bac_voc": 79.4, "salariu": 3902, "gap_teo_teh": 43.8, "sup3049": 31.2, "abandon": 0.7, "pred": 72.74, "resid": -1.24, "ln_PIB_c": 2.6026896854, "ln_stud_c": 0.1043600153, "bacf24": 76.6, "bacf25": 72.7, "bac24": 75.2, "bac25": 70.0, "som24": 4.44, "som25": 4.93, "w24": 2348, "w25": 1833, "ln_PIB": 2.6026896854, "ln_stud": 0.1043600153, "hat": 0.244, "cook": 0.009, "dfb_mob": -0.046, "t_ext": -0.39}, {"judet": "Timiș", "cod": "TM", "regiune": "Vest", "bac2026": 70.9, "rural_pct": 38.0, "pib_eur": 22723, "pop_mii": 651, "studenti_mii": 41.0, "studenti_pct": 6.3, "dist_buc_km": 565, "elevi_xii": 5102, "candidati_bac": 4561, "participare_pct": 89.4, "teoretica_pct": 48.8, "tehnologica_pct": 43.2, "vocationala_pct": 8.0, "real_pct": 26.0, "umanist_pct": 22.8, "tehnic_pct": 17.3, "servicii_pct": 20.1, "resurse_pct": 5.8, "mobilitate": 26.95, "nascuti_alt": 36.12, "somaj": 1.0, "studii_sup": 22.06, "bac_teo": 82.32, "bac_teh": 46.21, "bac_voc": 70.11, "salariu": 5508, "gap_teo_teh": 36.1, "sup3049": 37.1, "abandon": 0.2, "pred": 74.58, "resid": -3.68, "ln_PIB_c": 3.1233776274, "ln_stud_c": 1.8405496334, "bacf24": 74.4, "bacf25": 72.5, "bac24": 72.5, "bac25": 70.0, "som24": 1.08, "som25": 1.04, "w24": 4271, "w25": 3517, "ln_PIB": 3.1233776274, "ln_stud": 1.8405496334, "hat": 0.17, "cook": 0.04, "dfb_mob": -0.26, "t_ext": -1.09}, {"judet": "Vaslui", "cod": "VS", "regiune": "Nord-Est", "bac2026": 70.3, "rural_pct": 58.0, "pib_eur": 7498, "pop_mii": 375, "studenti_mii": 1.0, "studenti_pct": 0.27, "dist_buc_km": 340, "elevi_xii": 3003, "candidati_bac": 2566, "participare_pct": 85.4, "teoretica_pct": 54.3, "tehnologica_pct": 37.8, "vocationala_pct": 7.9, "real_pct": 18.8, "umanist_pct": 35.5, "tehnic_pct": 11.0, "servicii_pct": 18.5, "resurse_pct": 8.3, "mobilitate": 8.19, "nascuti_alt": 10.23, "somaj": 9.1, "studii_sup": 7.24, "bac_teo": 82.87, "bac_teh": 38.45, "bac_voc": 63.01, "salariu": 3929, "gap_teo_teh": 44.4, "sup3049": 14.6, "abandon": 1.1, "pred": 67.87, "resid": 2.43, "ln_PIB_c": 2.0146363183, "ln_stud_c": -1.30933332, "bacf24": 77.5, "bacf25": 74.1, "bac24": 75.9, "bac25": 72.2, "som24": 9.36, "som25": 8.9, "w24": 2468, "w25": 2072, "ln_PIB": 2.0146363183, "ln_stud": -1.30933332, "hat": 0.172, "cook": 0.026, "dfb_mob": 0.116, "t_ext": 0.86}, {"judet": "Vâlcea", "cod": "VL", "regiune": "Sud-Vest Oltenia", "bac2026": 70.0, "rural_pct": 54.0, "pib_eur": 12500, "pop_mii": 355, "studenti_mii": 2.0, "studenti_pct": 0.56, "dist_buc_km": 180, "elevi_xii": 2688, "candidati_bac": 2340, "participare_pct": 87.1, "teoretica_pct": 52.9, "tehnologica_pct": 38.4, "vocationala_pct": 8.7, "real_pct": 32.6, "umanist_pct": 20.3, "tehnic_pct": 20.4, "servicii_pct": 10.1, "resurse_pct": 7.9, "mobilitate": 10.51, "nascuti_alt": 11.75, "somaj": 2.8, "studii_sup": 13.59, "bac_teo": 79.81, "bac_teh": 43.83, "bac_voc": 76.67, "salariu": 3881, "gap_teo_teh": 36.0, "sup3049": 25.7, "abandon": 0.8, "pred": 73.22, "resid": -3.22, "ln_PIB_c": 2.5257286443, "ln_stud_c": -0.5798184953, "bacf24": 78.1, "bacf25": 74.1, "bac24": 76.1, "bac25": 71.6, "som24": 2.51, "som25": 3.09, "w24": 2463, "w25": 1910, "ln_PIB": 2.5257286443, "ln_stud": -0.5798184953, "hat": 0.066, "cook": 0.01, "dfb_mob": 0.126, "t_ext": -0.91}, {"judet": "Gorj", "cod": "GJ", "regiune": "Sud-Vest Oltenia", "bac2026": 69.7, "rural_pct": 53.0, "pib_eur": 15000, "pop_mii": 315, "studenti_mii": 2.0, "studenti_pct": 0.63, "dist_buc_km": 300, "elevi_xii": 2917, "candidati_bac": 2679, "participare_pct": 91.8, "teoretica_pct": 42.6, "tehnologica_pct": 47.7, "vocationala_pct": 9.7, "real_pct": 25.0, "umanist_pct": 17.7, "tehnic_pct": 26.6, "servicii_pct": 12.1, "resurse_pct": 9.0, "mobilitate": 10.24, "nascuti_alt": 12.67, "somaj": 4.0, "studii_sup": 14.26, "bac_teo": 84.94, "bac_teh": 45.06, "bac_voc": 62.42, "salariu": 4446, "gap_teo_teh": 39.9, "sup3049": 25.5, "abandon": 0.8, "pred": 72.97, "resid": -3.27, "ln_PIB_c": 2.7080502011, "ln_stud_c": -0.4620354596, "bacf24": 69.1, "bacf25": 61.3, "bac24": 67.1, "bac25": 58.6, "som24": 4.0, "som25": 4.17, "w24": 2745, "w25": 2157, "ln_PIB": 2.7080502011, "ln_stud": -0.4620354596, "hat": 0.098, "cook": 0.016, "dfb_mob": 0.202, "t_ext": -0.93}, {"judet": "Tulcea", "cod": "TL", "regiune": "Sud-Est", "bac2026": 69.1, "rural_pct": 51.0, "pib_eur": 12000, "pop_mii": 193, "studenti_mii": 0.6, "studenti_pct": 0.31, "dist_buc_km": 270, "elevi_xii": 1376, "candidati_bac": 1283, "participare_pct": 93.2, "teoretica_pct": 42.7, "tehnologica_pct": 47.6, "vocationala_pct": 9.7, "real_pct": 18.4, "umanist_pct": 24.3, "tehnic_pct": 18.2, "servicii_pct": 14.7, "resurse_pct": 14.8, "mobilitate": 11.38, "nascuti_alt": 14.43, "somaj": 4.1, "studii_sup": 9.89, "bac_teo": 81.09, "bac_teh": 46.58, "bac_voc": 67.16, "salariu": 4003, "gap_teo_teh": 34.5, "sup3049": 18.7, "abandon": 1.3, "pred": 70.72, "resid": -1.62, "ln_PIB_c": 2.4849066498, "ln_stud_c": -1.1711829815, "bacf24": 74.7, "bacf25": 72.1, "bac24": 73.6, "bac25": 69.7, "som24": 3.89, "som25": 4.27, "w24": 1176, "w25": 974, "ln_PIB": 2.4849066498, "ln_stud": -1.1711829815, "hat": 0.077, "cook": 0.003, "dfb_mob": 0.073, "t_ext": -0.49}, {"judet": "Harghita", "cod": "HR", "regiune": "Centru", "bac2026": 68.4, "rural_pct": 56.0, "pib_eur": 10500, "pop_mii": 291, "studenti_mii": 1.0, "studenti_pct": 0.34, "dist_buc_km": 265, "elevi_xii": 2305, "candidati_bac": 2380, "participare_pct": 103.3, "teoretica_pct": 43.6, "tehnologica_pct": 40.0, "vocationala_pct": 16.4, "real_pct": 27.1, "umanist_pct": 16.5, "tehnic_pct": 14.0, "servicii_pct": 15.7, "resurse_pct": 10.4, "mobilitate": 9.1, "nascuti_alt": 9.98, "somaj": 5.1, "studii_sup": 10.89, "bac_teo": 81.33, "bac_teh": 48.03, "bac_voc": 71.29, "salariu": 3955, "gap_teo_teh": 33.3, "sup3049": 19.5, "abandon": 1.7, "pred": 70.83, "resid": -2.43, "ln_PIB_c": 2.3513752572, "ln_stud_c": -1.0788096614, "bacf24": 61.0, "bacf25": 66.3, "bac24": 57.6, "bac25": 63.8, "som24": 5.45, "som25": 5.24, "w24": 2226, "w25": 2117, "ln_PIB": 2.3513752572, "ln_stud": -1.0788096614, "hat": 0.048, "cook": 0.003, "dfb_mob": 0.057, "t_ext": -0.64}, {"judet": "Dâmbovița", "cod": "DB", "regiune": "Sud-Muntenia", "bac2026": 67.8, "rural_pct": 68.0, "pib_eur": 11500, "pop_mii": 483, "studenti_mii": 4.0, "studenti_pct": 0.83, "dist_buc_km": 80, "elevi_xii": 3404, "candidati_bac": 2955, "participare_pct": 86.8, "teoretica_pct": 56.6, "tehnologica_pct": 33.8, "vocationala_pct": 9.6, "real_pct": 27.5, "umanist_pct": 29.1, "tehnic_pct": 15.9, "servicii_pct": 13.5, "resurse_pct": 4.4, "mobilitate": 10.73, "nascuti_alt": 12.27, "somaj": 3.8, "studii_sup": 11.18, "bac_teo": 75.13, "bac_teh": 34.94, "bac_voc": 65.05, "salariu": 4181, "gap_teo_teh": 40.2, "sup3049": 20.0, "abandon": 1.0, "pred": 71.4, "resid": -3.6, "ln_PIB_c": 2.4423470354, "ln_stud_c": -0.1863295782, "bacf24": 72.3, "bacf25": 69.3, "bac24": 70.5, "bac25": 67.0, "som24": 3.8, "som25": 4.31, "w24": 2971, "w25": 2370, "ln_PIB": 2.4423470354, "ln_stud": -0.1863295782, "hat": 0.126, "cook": 0.021, "dfb_mob": -0.061, "t_ext": -0.94}, {"judet": "Sălaj", "cod": "SJ", "regiune": "Nord-Vest", "bac2026": 67.7, "rural_pct": 60.0, "pib_eur": 14000, "pop_mii": 216, "studenti_mii": 0.6, "studenti_pct": 0.28, "dist_buc_km": 490, "elevi_xii": 1631, "candidati_bac": 1448, "participare_pct": 88.8, "teoretica_pct": 49.8, "tehnologica_pct": 39.0, "vocationala_pct": 11.2, "real_pct": 32.6, "umanist_pct": 17.2, "tehnic_pct": 20.4, "servicii_pct": 17.6, "resurse_pct": 1.0, "mobilitate": 11.16, "nascuti_alt": 10.88, "somaj": 6.5, "studii_sup": 11.84, "bac_teo": 78.97, "bac_teh": 36.67, "bac_voc": 80.54, "salariu": 4155, "gap_teo_teh": 42.3, "sup3049": 22.8, "abandon": 1.2, "pred": 67.5, "resid": 0.2, "ln_PIB_c": 2.6390573296, "ln_stud_c": -1.2729656758, "bacf24": 72.9, "bacf25": 72.7, "bac24": 71.2, "bac25": 70.8, "som24": 6.16, "som25": 6.39, "w24": 1545, "w25": 1221, "ln_PIB": 2.6390573296, "ln_stud": -1.2729656758, "hat": 0.19, "cook": 0.0, "dfb_mob": -0.012, "t_ext": 0.07}, {"judet": "Arad", "cod": "AR", "regiune": "Vest", "bac2026": 67.3, "rural_pct": 46.0, "pib_eur": 17000, "pop_mii": 410, "studenti_mii": 9.0, "studenti_pct": 2.2, "dist_buc_km": 540, "elevi_xii": 3318, "candidati_bac": 2765, "participare_pct": 83.3, "teoretica_pct": 44.0, "tehnologica_pct": 46.6, "vocationala_pct": 9.4, "real_pct": 24.9, "umanist_pct": 19.1, "tehnic_pct": 16.9, "servicii_pct": 19.0, "resurse_pct": 10.7, "mobilitate": 19.19, "nascuti_alt": 24.78, "somaj": 2.3, "studii_sup": 15.73, "bac_teo": 79.09, "bac_teh": 36.6, "bac_voc": 77.42, "salariu": 4258, "gap_teo_teh": 42.5, "sup3049": 28.0, "abandon": 1.8, "pred": 73.83, "resid": -6.53, "ln_PIB_c": 2.8332133441, "ln_stud_c": 0.7884573604, "bacf24": 74.1, "bacf25": 70.5, "bac24": 72.2, "bac25": 68.2, "som24": 1.74, "som25": 2.01, "w24": 2681, "w25": 2039, "ln_PIB": 2.8332133441, "ln_stud": 0.7884573604, "hat": 0.061, "cook": 0.034, "dfb_mob": -0.149, "t_ext": -1.84}, {"judet": "Caraș-Severin", "cod": "CS", "regiune": "Vest", "bac2026": 67.2, "rural_pct": 44.0, "pib_eur": 11000, "pop_mii": 246, "studenti_mii": 2.0, "studenti_pct": 0.81, "dist_buc_km": 500, "elevi_xii": 2024, "candidati_bac": 1403, "participare_pct": 69.3, "teoretica_pct": 41.4, "tehnologica_pct": 51.1, "vocationala_pct": 7.5, "real_pct": 21.7, "umanist_pct": 19.7, "tehnic_pct": 28.4, "servicii_pct": 13.6, "resurse_pct": 9.1, "mobilitate": 17.94, "nascuti_alt": 24.96, "somaj": 3.7, "studii_sup": 12.45, "bac_teo": 75.09, "bac_teh": 29.6, "bac_voc": 70.42, "salariu": 4060, "gap_teo_teh": 45.5, "sup3049": 24.8, "abandon": 1.6, "pred": 71.29, "resid": -4.09, "ln_PIB_c": 2.3978952728, "ln_stud_c": -0.2107210313, "bacf24": 72.8, "bacf25": 69.5, "bac24": 70.9, "bac25": 66.5, "som24": 3.51, "som25": 4.02, "w24": 1413, "w25": 1175, "ln_PIB": 2.3978952728, "ln_stud": -0.2107210313, "hat": 0.109, "cook": 0.026, "dfb_mob": -0.202, "t_ext": -1.14}, {"judet": "Olt", "cod": "OT", "regiune": "Sud-Vest Oltenia", "bac2026": 66.0, "rural_pct": 59.0, "pib_eur": 10500, "pop_mii": 402, "studenti_mii": 1.0, "studenti_pct": 0.25, "dist_buc_km": 190, "elevi_xii": 3333, "candidati_bac": 2317, "participare_pct": 69.5, "teoretica_pct": 45.4, "tehnologica_pct": 49.9, "vocationala_pct": 4.6, "real_pct": 21.9, "umanist_pct": 23.5, "tehnic_pct": 22.3, "servicii_pct": 14.5, "resurse_pct": 13.1, "mobilitate": 9.8, "nascuti_alt": 11.22, "somaj": 6.0, "studii_sup": 10.39, "bac_teo": 75.03, "bac_teh": 34.84, "bac_voc": 60.12, "salariu": 4377, "gap_teo_teh": 40.2, "sup3049": 19.3, "abandon": 1.1, "pred": 68.53, "resid": -2.53, "ln_PIB_c": 2.3513752572, "ln_stud_c": -1.3862943611, "bacf24": 72.8, "bacf25": 68.8, "bac24": 70.5, "bac25": 66.1, "som24": 5.38, "som25": 6.19, "w24": 2263, "w25": 1767, "ln_PIB": 2.3513752572, "ln_stud": -1.3862943611, "hat": 0.063, "cook": 0.005, "dfb_mob": 0.045, "t_ext": -0.66}, {"judet": "Ialomița", "cod": "IL", "regiune": "Sud-Muntenia", "bac2026": 64.7, "rural_pct": 55.0, "pib_eur": 11000, "pop_mii": 244, "studenti_mii": 0.5, "studenti_pct": 0.2, "dist_buc_km": 130, "elevi_xii": 1782, "candidati_bac": 1561, "participare_pct": 87.6, "teoretica_pct": 55.8, "tehnologica_pct": 36.4, "vocationala_pct": 7.7, "real_pct": 36.1, "umanist_pct": 19.8, "tehnic_pct": 16.3, "servicii_pct": 16.3, "resurse_pct": 3.9, "mobilitate": 15.79, "nascuti_alt": 18.37, "somaj": 5.7, "studii_sup": 8.88, "bac_teo": 75.37, "bac_teh": 30.43, "bac_voc": 64.23, "salariu": 4136, "gap_teo_teh": 44.9, "sup3049": 17.6, "abandon": 1.5, "pred": 65.49, "resid": -0.79, "ln_PIB_c": 2.3978952728, "ln_stud_c": -1.6094379124, "bacf24": 74.8, "bacf25": 69.7, "bac24": 72.7, "bac25": 67.5, "som24": 6.03, "som25": 5.94, "w24": 1427, "w25": 1309, "ln_PIB": 2.3978952728, "ln_stud": -1.6094379124, "hat": 0.076, "cook": 0.001, "dfb_mob": -0.009, "t_ext": -0.22}, {"judet": "Teleorman", "cod": "TR", "regiune": "Sud-Muntenia", "bac2026": 64.7, "rural_pct": 66.0, "pib_eur": 10500, "pop_mii": 323, "studenti_mii": 0.5, "studenti_pct": 0.15, "dist_buc_km": 90, "elevi_xii": 2136, "candidati_bac": 1741, "participare_pct": 81.5, "teoretica_pct": 59.4, "tehnologica_pct": 35.4, "vocationala_pct": 5.2, "real_pct": 21.8, "umanist_pct": 37.6, "tehnic_pct": 11.1, "servicii_pct": 14.4, "resurse_pct": 9.9, "mobilitate": 9.04, "nascuti_alt": 9.84, "somaj": 8.7, "studii_sup": 8.84, "bac_teo": 70.26, "bac_teh": 21.94, "bac_voc": 60.78, "salariu": 3822, "gap_teo_teh": 48.3, "sup3049": 17.8, "abandon": 1.0, "pred": 64.63, "resid": 0.07, "ln_PIB_c": 2.3513752572, "ln_stud_c": -1.8971199849, "bacf24": 66.7, "bacf25": 65.9, "bac24": 64.6, "bac25": 63.6, "som24": 9.66, "som25": 9.28, "w24": 1799, "w25": 1364, "ln_PIB": 2.3513752572, "ln_stud": -1.8971199849, "hat": 0.216, "cook": 0.0, "dfb_mob": -0.007, "t_ext": 0.1}, {"judet": "Giurgiu", "cod": "GR", "regiune": "Sud-Muntenia", "bac2026": 63.2, "rural_pct": 69.0, "pib_eur": 8034, "pop_mii": 260, "studenti_mii": 0.4, "studenti_pct": 0.15, "dist_buc_km": 65, "elevi_xii": 1192, "candidati_bac": 964, "participare_pct": 80.9, "teoretica_pct": 49.6, "tehnologica_pct": 45.9, "vocationala_pct": 4.5, "real_pct": 13.8, "umanist_pct": 35.8, "tehnic_pct": 10.9, "servicii_pct": 24.8, "resurse_pct": 10.2, "mobilitate": 16.94, "nascuti_alt": 18.19, "somaj": 3.1, "studii_sup": 8.57, "bac_teo": 67.69, "bac_teh": 45.33, "bac_voc": 64.29, "salariu": 4317, "gap_teo_teh": 22.4, "sup3049": 15.9, "abandon": 1.9, "pred": 63.75, "resid": -0.55, "ln_PIB_c": 2.0836825359, "ln_stud_c": -1.8971199849, "bacf24": 63.4, "bacf25": 64.7, "bac24": 60.2, "bac25": 62.5, "som24": 2.78, "som25": 3.22, "w24": 1097, "w25": 825, "ln_PIB": 2.0836825359, "ln_stud": -1.8971199849, "hat": 0.209, "cook": 0.001, "dfb_mob": -0.041, "t_ext": -0.16}, {"judet": "Călărași", "cod": "CL", "regiune": "Sud-Muntenia", "bac2026": 61.3, "rural_pct": 62.0, "pib_eur": 10000, "pop_mii": 269, "studenti_mii": 0.5, "studenti_pct": 0.19, "dist_buc_km": 120, "elevi_xii": 1395, "candidati_bac": 1244, "participare_pct": 89.2, "teoretica_pct": 56.3, "tehnologica_pct": 35.2, "vocationala_pct": 8.5, "real_pct": 26.0, "umanist_pct": 30.3, "tehnic_pct": 11.2, "servicii_pct": 17.7, "resurse_pct": 6.2, "mobilitate": 16.46, "nascuti_alt": 19.39, "somaj": 6.2, "studii_sup": 7.38, "bac_teo": 72.86, "bac_teh": 28.49, "bac_voc": 55.77, "salariu": 4057, "gap_teo_teh": 44.4, "sup3049": 14.0, "abandon": 3.1, "pred": 63.61, "resid": -2.31, "ln_PIB_c": 2.302585093, "ln_stud_c": -1.6607312068, "bacf24": 69.8, "bacf25": 67.2, "bac24": 67.9, "bac25": 65.0, "som24": 5.95, "som25": 5.82, "w24": 1353, "w25": 1024, "ln_PIB": 2.302585093, "ln_stud": -1.6607312068, "hat": 0.097, "cook": 0.007, "dfb_mob": -0.097, "t_ext": -0.6}, {"judet": "Mehedinți", "cod": "MH", "regiune": "Sud-Vest Oltenia", "bac2026": 60.1, "rural_pct": 52.0, "pib_eur": 9500, "pop_mii": 236, "studenti_mii": 1.0, "studenti_pct": 0.42, "dist_buc_km": 350, "elevi_xii": 2194, "candidati_bac": 1496, "participare_pct": 68.2, "teoretica_pct": 44.9, "tehnologica_pct": 45.4, "vocationala_pct": 9.7, "real_pct": 27.4, "umanist_pct": 17.6, "tehnic_pct": 23.7, "servicii_pct": 11.4, "resurse_pct": 10.3, "mobilitate": 10.08, "nascuti_alt": 13.67, "somaj": 8.8, "studii_sup": 11.31, "bac_teo": 71.37, "bac_teh": 25.2, "bac_voc": 62.15, "salariu": 3945, "gap_teo_teh": 46.2, "sup3049": 21.8, "abandon": 1.4, "pred": 69.12, "resid": -9.02, "ln_PIB_c": 2.2512917986, "ln_stud_c": -0.8675005677, "bacf24": 64.1, "bacf25": 58.5, "bac24": 62.6, "bac25": 55.6, "som24": 8.51, "som25": 9.05, "w24": 1693, "w25": 1206, "ln_PIB": 2.2512917986, "ln_stud": -0.8675005677, "hat": 0.145, "cook": 0.17, "dfb_mob": -0.199, "t_ext": -2.65}, {"judet": "Ilfov", "cod": "IF", "regiune": "București-Ilfov", "bac2026": 55.3, "rural_pct": 45.0, "pib_eur": 24000, "pop_mii": 542, "studenti_mii": 1.5, "studenti_pct": 0.28, "dist_buc_km": 25, "elevi_xii": 1749, "candidati_bac": 1374, "participare_pct": 78.6, "teoretica_pct": 56.4, "tehnologica_pct": 32.0, "vocationala_pct": 11.6, "real_pct": 19.0, "umanist_pct": 37.4, "tehnic_pct": 5.2, "servicii_pct": 16.7, "resurse_pct": 10.2, "mobilitate": 50.72, "nascuti_alt": 51.47, "somaj": 0.5, "studii_sup": 25.16, "bac_teo": 62.84, "bac_teh": 31.94, "bac_voc": 43.68, "salariu": 5060, "gap_teo_teh": 30.9, "sup3049": 35.5, "abandon": 0.9, "pred": 52.34, "resid": 2.96, "ln_PIB_c": 3.1780538303, "ln_stud_c": -1.2729656758, "bacf24": 56.7, "bacf25": 58.8, "bac24": 53.8, "bac25": 55.0, "som24": 0.38, "som25": 0.49, "w24": 1175, "w25": 1030, "ln_PIB": 3.1780538303, "ln_stud": -1.2729656758, "hat": 0.693, "cook": 0.447, "dfb_mob": 1.176, "t_ext": 1.09}];
+const CORR = {"rural_pct": -0.4076329173600974, "pib_eur": 0.2554417877908411, "studenti_pct": 0.5565015248953779}, REG = {"rural_pct": [-0.19712040445165727, 82.2006362896037], "pib_eur": [0.0002504033812129496, 68.99350394085135], "studenti_pct": [1.4838059776713035, 69.7755416528673]}, CORR_NOB = {"rural_pct": -0.3830090703017068, "pib_eur": 0.196449530307874, "studenti_pct": 0.5554090314271425}, NAT = {"bac": 74.8, "rural": 47.8, "pib": 13916};
+const CURVES = {"c_rural": {"form": "liniar", "r2": 0.16616459531550432, "x": [0.0, 1.169, 2.339, 3.508, 4.678, 5.847, 7.017, 8.186, 9.356, 10.525, 11.695, 12.864, 14.034, 15.203, 16.373, 17.542, 18.712, 19.881, 21.051, 22.22, 23.39, 24.559, 25.729, 26.898, 28.068, 29.237, 30.407, 31.576, 32.746, 33.915, 35.085, 36.254, 37.424, 38.593, 39.763, 40.932, 42.102, 43.271, 44.441, 45.61, 46.78, 47.949, 49.119, 50.288, 51.458, 52.627, 53.797, 54.966, 56.136, 57.305, 58.475, 59.644, 60.814, 61.983, 63.153, 64.322, 65.492, 66.661, 67.831, 69.0], "y": [82.201, 81.97, 81.74, 81.509, 81.279, 81.048, 80.817, 80.587, 80.356, 80.126, 79.895, 79.665, 79.434, 79.204, 78.973, 78.743, 78.512, 78.282, 78.051, 77.821, 77.59, 77.359, 77.129, 76.898, 76.668, 76.437, 76.207, 75.976, 75.746, 75.515, 75.285, 75.054, 74.824, 74.593, 74.363, 74.132, 73.902, 73.671, 73.44, 73.21, 72.979, 72.749, 72.518, 72.288, 72.057, 71.827, 71.596, 71.366, 71.135, 70.905, 70.674, 70.444, 70.213, 69.983, 69.752, 69.521, 69.291, 69.06, 68.83, 68.599]}, "c_pib": {"form": "logaritmic", "r2": 0.08393441739658547, "x": [7498.0, 8166.983, 8835.966, 9504.949, 10173.932, 10842.915, 11511.898, 12180.881, 12849.864, 13518.847, 14187.831, 14856.814, 15525.797, 16194.78, 16863.763, 17532.746, 18201.729, 18870.712, 19539.695, 20208.678, 20877.661, 21546.644, 22215.627, 22884.61, 23553.593, 24222.576, 24891.559, 25560.542, 26229.525, 26898.508, 27567.492, 28236.475, 28905.458, 29574.441, 30243.424, 30912.407, 31581.39, 32250.373, 32919.356, 33588.339, 34257.322, 34926.305, 35595.288, 36264.271, 36933.254, 37602.237, 38271.22, 38940.203, 39609.186, 40278.169, 40947.153, 41616.136, 42285.119, 42954.102, 43623.085, 44292.068, 44961.051, 45630.034, 46299.017, 46968.0], "y": [69.506, 69.967, 70.393, 70.787, 71.154, 71.498, 71.822, 72.127, 72.416, 72.69, 72.951, 73.2, 73.438, 73.666, 73.885, 74.095, 74.297, 74.492, 74.68, 74.862, 75.038, 75.208, 75.374, 75.534, 75.69, 75.841, 75.988, 76.131, 76.271, 76.407, 76.54, 76.669, 76.796, 76.919, 77.04, 77.158, 77.274, 77.387, 77.498, 77.607, 77.713, 77.818, 77.92, 78.021, 78.12, 78.217, 78.312, 78.406, 78.498, 78.588, 78.677, 78.765, 78.851, 78.936, 79.019, 79.101, 79.182, 79.262, 79.341, 79.418]}, "c_stud": {"form": "logaritmic", "r2": 0.4523637626910689, "x": [0.15, 0.315, 0.481, 0.646, 0.812, 0.977, 1.143, 1.308, 1.473, 1.639, 1.804, 1.97, 2.135, 2.301, 2.466, 2.631, 2.797, 2.962, 3.128, 3.293, 3.458, 3.624, 3.789, 3.955, 4.12, 4.286, 4.451, 4.616, 4.782, 4.947, 5.113, 5.278, 5.444, 5.609, 5.774, 5.94, 6.105, 6.271, 6.436, 6.602, 6.767, 6.932, 7.098, 7.263, 7.429, 7.594, 7.759, 7.925, 8.09, 8.256, 8.421, 8.587, 8.752, 8.917, 9.083, 9.248, 9.414, 9.579, 9.745, 9.91], "y": [66.061, 68.747, 70.27, 71.339, 72.162, 72.832, 73.398, 73.886, 74.316, 74.701, 75.048, 75.365, 75.657, 75.926, 76.177, 76.412, 76.632, 76.84, 77.036, 77.222, 77.4, 77.568, 77.73, 77.884, 78.032, 78.174, 78.311, 78.443, 78.57, 78.693, 78.812, 78.927, 79.039, 79.147, 79.252, 79.354, 79.453, 79.55, 79.644, 79.735, 79.825, 79.912, 79.997, 80.081, 80.162, 80.242, 80.319, 80.396, 80.47, 80.543, 80.615, 80.685, 80.754, 80.822, 80.888, 80.954, 81.018, 81.081, 81.143, 81.203]}, "c_pib2": {"form": "logaritmic", "r2": 0.20825438200600044, "x": [7498.0, 7791.695, 8085.39, 8379.085, 8672.78, 8966.475, 9260.169, 9553.864, 9847.559, 10141.254, 10434.949, 10728.644, 11022.339, 11316.034, 11609.729, 11903.424, 12197.119, 12490.814, 12784.508, 13078.203, 13371.898, 13665.593, 13959.288, 14252.983, 14546.678, 14840.373, 15134.068, 15427.763, 15721.458, 16015.153, 16308.847, 16602.542, 16896.237, 17189.932, 17483.627, 17777.322, 18071.017, 18364.712, 18658.407, 18952.102, 19245.797, 19539.492, 19833.186, 20126.881, 20420.576, 20714.271, 21007.966, 21301.661, 21595.356, 21889.051, 22182.746, 22476.441, 22770.136, 23063.831, 23357.525, 23651.22, 23944.915, 24238.61, 24532.305, 24826.0], "y": [67.681, 68.065, 68.436, 68.793, 69.137, 69.471, 69.793, 70.106, 70.409, 70.703, 70.989, 71.266, 71.537, 71.8, 72.056, 72.306, 72.55, 72.788, 73.021, 73.248, 73.47, 73.688, 73.9, 74.109, 74.313, 74.513, 74.709, 74.901, 75.09, 75.275, 75.457, 75.636, 75.811, 75.984, 76.153, 76.32, 76.484, 76.645, 76.804, 76.96, 77.114, 77.266, 77.415, 77.562, 77.707, 77.85, 77.991, 78.13, 78.267, 78.402, 78.535, 78.667, 78.797, 78.925, 79.052, 79.177, 79.3, 79.422, 79.543, 79.662]}, "c_dist": {"form": "logaritmic", "r2": 0.1687128993639665, "x": [25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 85.0, 95.0, 105.0, 115.0, 125.0, 135.0, 145.0, 155.0, 165.0, 175.0, 185.0, 195.0, 205.0, 215.0, 225.0, 235.0, 245.0, 255.0, 265.0, 275.0, 285.0, 295.0, 305.0, 315.0, 325.0, 335.0, 345.0, 355.0, 365.0, 375.0, 385.0, 395.0, 405.0, 415.0, 425.0, 435.0, 445.0, 455.0, 465.0, 475.0, 485.0, 495.0, 505.0, 515.0, 525.0, 535.0, 545.0, 555.0, 565.0, 575.0, 585.0, 595.0, 605.0, 615.0], "y": [63.983, 65.221, 66.146, 66.884, 67.499, 68.025, 68.486, 68.895, 69.263, 69.598, 69.905, 70.188, 70.451, 70.696, 70.926, 71.143, 71.347, 71.541, 71.725, 71.9, 72.067, 72.227, 72.381, 72.528, 72.669, 72.806, 72.937, 73.064, 73.187, 73.305, 73.42, 73.532, 73.64, 73.745, 73.847, 73.947, 74.044, 74.138, 74.23, 74.32, 74.407, 74.493, 74.577, 74.658, 74.738, 74.817, 74.893, 74.968, 75.042, 75.114, 75.185, 75.254, 75.322, 75.389, 75.455, 75.52, 75.583, 75.645, 75.707, 75.767]}, "c_part": {"form": "pătratic", "r2": 0.12121540275812814, "x": [68.2, 68.795, 69.39, 69.985, 70.58, 71.175, 71.769, 72.364, 72.959, 73.554, 74.149, 74.744, 75.339, 75.934, 76.529, 77.124, 77.719, 78.314, 78.908, 79.503, 80.098, 80.693, 81.288, 81.883, 82.478, 83.073, 83.668, 84.263, 84.858, 85.453, 86.047, 86.642, 87.237, 87.832, 88.427, 89.022, 89.617, 90.212, 90.807, 91.402, 91.997, 92.592, 93.186, 93.781, 94.376, 94.971, 95.566, 96.161, 96.756, 97.351, 97.946, 98.541, 99.136, 99.731, 100.325, 100.92, 101.515, 102.11, 102.705, 103.3], "y": [64.951, 65.487, 66.006, 66.508, 66.993, 67.462, 67.915, 68.35, 68.769, 69.171, 69.557, 69.926, 70.278, 70.613, 70.932, 71.234, 71.52, 71.789, 72.041, 72.276, 72.495, 72.697, 72.882, 73.051, 73.203, 73.338, 73.457, 73.559, 73.644, 73.713, 73.765, 73.8, 73.819, 73.821, 73.806, 73.774, 73.726, 73.661, 73.58, 73.482, 73.367, 73.235, 73.087, 72.922, 72.741, 72.542, 72.327, 72.096, 71.847, 71.582, 71.301, 71.002, 70.687, 70.356, 70.007, 69.642, 69.261, 68.862, 68.447, 68.015]}, "c_teh": {"form": "liniar", "r2": 0.00048507332362068833, "x": [30.0, 30.358, 30.715, 31.073, 31.431, 31.788, 32.146, 32.503, 32.861, 33.219, 33.576, 33.934, 34.292, 34.649, 35.007, 35.364, 35.722, 36.08, 36.437, 36.795, 37.153, 37.51, 37.868, 38.225, 38.583, 38.941, 39.298, 39.656, 40.014, 40.371, 40.729, 41.086, 41.444, 41.802, 42.159, 42.517, 42.875, 43.232, 43.59, 43.947, 44.305, 44.663, 45.02, 45.378, 45.736, 46.093, 46.451, 46.808, 47.166, 47.524, 47.881, 48.239, 48.597, 48.954, 49.312, 49.669, 50.027, 50.385, 50.742, 51.1], "y": [72.763, 72.754, 72.746, 72.737, 72.729, 72.72, 72.712, 72.703, 72.694, 72.686, 72.677, 72.669, 72.66, 72.652, 72.643, 72.634, 72.626, 72.617, 72.609, 72.6, 72.592, 72.583, 72.574, 72.566, 72.557, 72.549, 72.54, 72.532, 72.523, 72.515, 72.506, 72.497, 72.489, 72.48, 72.472, 72.463, 72.455, 72.446, 72.437, 72.429, 72.42, 72.412, 72.403, 72.395, 72.386, 72.377, 72.369, 72.36, 72.352, 72.343, 72.335, 72.326, 72.318, 72.309, 72.3, 72.292, 72.283, 72.275, 72.266, 72.258]}, "c_voc": {"form": "liniar", "r2": 0.05003761597814871, "x": [4.5, 4.731, 4.961, 5.192, 5.422, 5.653, 5.883, 6.114, 6.344, 6.575, 6.805, 7.036, 7.266, 7.497, 7.727, 7.958, 8.188, 8.419, 8.649, 8.88, 9.11, 9.341, 9.571, 9.802, 10.032, 10.263, 10.493, 10.724, 10.954, 11.185, 11.415, 11.646, 11.876, 12.107, 12.337, 12.568, 12.798, 13.029, 13.259, 13.49, 13.72, 13.951, 14.181, 14.412, 14.642, 14.873, 15.103, 15.334, 15.564, 15.795, 16.025, 16.256, 16.486, 16.717, 16.947, 17.178, 17.408, 17.639, 17.869, 18.1], "y": [69.839, 69.956, 70.073, 70.19, 70.307, 70.424, 70.541, 70.659, 70.776, 70.893, 71.01, 71.127, 71.244, 71.361, 71.478, 71.595, 71.712, 71.829, 71.946, 72.063, 72.18, 72.297, 72.414, 72.531, 72.648, 72.765, 72.882, 72.999, 73.116, 73.233, 73.35, 73.467, 73.584, 73.701, 73.819, 73.936, 74.053, 74.17, 74.287, 74.404, 74.521, 74.638, 74.755, 74.872, 74.989, 75.106, 75.223, 75.34, 75.457, 75.574, 75.691, 75.808, 75.925, 76.042, 76.159, 76.276, 76.393, 76.51, 76.627, 76.744]}, "c_real": {"form": "liniar", "r2": 0.09232191399656464, "x": [13.8, 14.178, 14.556, 14.934, 15.312, 15.69, 16.068, 16.446, 16.824, 17.202, 17.58, 17.958, 18.336, 18.714, 19.092, 19.469, 19.847, 20.225, 20.603, 20.981, 21.359, 21.737, 22.115, 22.493, 22.871, 23.249, 23.627, 24.005, 24.383, 24.761, 25.139, 25.517, 25.895, 26.273, 26.651, 27.029, 27.407, 27.785, 28.163, 28.541, 28.919, 29.297, 29.675, 30.053, 30.431, 30.808, 31.186, 31.564, 31.942, 32.32, 32.698, 33.076, 33.454, 33.832, 34.21, 34.588, 34.966, 35.344, 35.722, 36.1], "y": [67.325, 67.49, 67.656, 67.821, 67.987, 68.153, 68.318, 68.484, 68.649, 68.815, 68.981, 69.146, 69.312, 69.477, 69.643, 69.809, 69.974, 70.14, 70.305, 70.471, 70.637, 70.802, 70.968, 71.133, 71.299, 71.465, 71.63, 71.796, 71.961, 72.127, 72.293, 72.458, 72.624, 72.789, 72.955, 73.12, 73.286, 73.452, 73.617, 73.783, 73.948, 74.114, 74.28, 74.445, 74.611, 74.776, 74.942, 75.108, 75.273, 75.439, 75.604, 75.77, 75.936, 76.101, 76.267, 76.432, 76.598, 76.764, 76.929, 77.095]}, "c_umanist": {"form": "liniar", "r2": 0.10018137246826431, "x": [16.3, 16.661, 17.022, 17.383, 17.744, 18.105, 18.466, 18.827, 19.188, 19.549, 19.91, 20.271, 20.632, 20.993, 21.354, 21.715, 22.076, 22.437, 22.798, 23.159, 23.52, 23.881, 24.242, 24.603, 24.964, 25.325, 25.686, 26.047, 26.408, 26.769, 27.131, 27.492, 27.853, 28.214, 28.575, 28.936, 29.297, 29.658, 30.019, 30.38, 30.741, 31.102, 31.463, 31.824, 32.185, 32.546, 32.907, 33.268, 33.629, 33.99, 34.351, 34.712, 35.073, 35.434, 35.795, 36.156, 36.517, 36.878, 37.239, 37.6], "y": [75.019, 74.894, 74.769, 74.644, 74.519, 74.394, 74.269, 74.144, 74.019, 73.894, 73.769, 73.645, 73.52, 73.395, 73.27, 73.145, 73.02, 72.895, 72.77, 72.645, 72.52, 72.395, 72.27, 72.145, 72.021, 71.896, 71.771, 71.646, 71.521, 71.396, 71.271, 71.146, 71.021, 70.896, 70.771, 70.646, 70.522, 70.397, 70.272, 70.147, 70.022, 69.897, 69.772, 69.647, 69.522, 69.397, 69.272, 69.147, 69.022, 68.898, 68.773, 68.648, 68.523, 68.398, 68.273, 68.148, 68.023, 67.898, 67.773, 67.648]}, "c_tehnic": {"form": "liniar", "r2": 0.004045042803635379, "x": [5.2, 5.593, 5.986, 6.38, 6.773, 7.166, 7.559, 7.953, 8.346, 8.739, 9.132, 9.525, 9.919, 10.312, 10.705, 11.098, 11.492, 11.885, 12.278, 12.671, 13.064, 13.458, 13.851, 14.244, 14.637, 15.031, 15.424, 15.817, 16.21, 16.603, 16.997, 17.39, 17.783, 18.176, 18.569, 18.963, 19.356, 19.749, 20.142, 20.536, 20.929, 21.322, 21.715, 22.108, 22.502, 22.895, 23.288, 23.681, 24.075, 24.468, 24.861, 25.254, 25.647, 26.041, 26.434, 26.827, 27.22, 27.614, 28.007, 28.4], "y": [71.603, 71.633, 71.664, 71.694, 71.725, 71.755, 71.786, 71.817, 71.847, 71.878, 71.908, 71.939, 71.969, 72.0, 72.03, 72.061, 72.091, 72.122, 72.152, 72.183, 72.213, 72.244, 72.274, 72.305, 72.335, 72.366, 72.396, 72.427, 72.457, 72.488, 72.518, 72.549, 72.579, 72.61, 72.64, 72.671, 72.701, 72.732, 72.762, 72.793, 72.823, 72.854, 72.884, 72.915, 72.945, 72.976, 73.006, 73.037, 73.067, 73.098, 73.128, 73.159, 73.189, 73.22, 73.25, 73.281, 73.311, 73.342, 73.372, 73.403]}, "c_servicii": {"form": "liniar", "r2": 0.016643866750817415, "x": [9.8, 10.054, 10.308, 10.563, 10.817, 11.071, 11.325, 11.58, 11.834, 12.088, 12.342, 12.597, 12.851, 13.105, 13.359, 13.614, 13.868, 14.122, 14.376, 14.631, 14.885, 15.139, 15.393, 15.647, 15.902, 16.156, 16.41, 16.664, 16.919, 17.173, 17.427, 17.681, 17.936, 18.19, 18.444, 18.698, 18.953, 19.207, 19.461, 19.715, 19.969, 20.224, 20.478, 20.732, 20.986, 21.241, 21.495, 21.749, 22.003, 22.258, 22.512, 22.766, 23.02, 23.275, 23.529, 23.783, 24.037, 24.292, 24.546, 24.8], "y": [70.986, 71.041, 71.096, 71.152, 71.207, 71.263, 71.318, 71.374, 71.429, 71.484, 71.54, 71.595, 71.651, 71.706, 71.762, 71.817, 71.872, 71.928, 71.983, 72.039, 72.094, 72.15, 72.205, 72.26, 72.316, 72.371, 72.427, 72.482, 72.537, 72.593, 72.648, 72.704, 72.759, 72.815, 72.87, 72.925, 72.981, 73.036, 73.092, 73.147, 73.203, 73.258, 73.313, 73.369, 73.424, 73.48, 73.535, 73.591, 73.646, 73.701, 73.757, 73.812, 73.868, 73.923, 73.979, 74.034, 74.089, 74.145, 74.2, 74.256]}, "c_resurse": {"form": "liniar", "r2": 0.10673705876079731, "x": [1.0, 1.234, 1.468, 1.702, 1.936, 2.169, 2.403, 2.637, 2.871, 3.105, 3.339, 3.573, 3.807, 4.041, 4.275, 4.508, 4.742, 4.976, 5.21, 5.444, 5.678, 5.912, 6.146, 6.38, 6.614, 6.847, 7.081, 7.315, 7.549, 7.783, 8.017, 8.251, 8.485, 8.719, 8.953, 9.186, 9.42, 9.654, 9.888, 10.122, 10.356, 10.59, 10.824, 11.058, 11.292, 11.525, 11.759, 11.993, 12.227, 12.461, 12.695, 12.929, 13.163, 13.397, 13.631, 13.864, 14.098, 14.332, 14.566, 14.8], "y": [77.244, 77.077, 76.909, 76.742, 76.574, 76.407, 76.239, 76.071, 75.904, 75.736, 75.569, 75.401, 75.234, 75.066, 74.899, 74.731, 74.563, 74.396, 74.228, 74.061, 73.893, 73.726, 73.558, 73.391, 73.223, 73.055, 72.888, 72.72, 72.553, 72.385, 72.218, 72.05, 71.883, 71.715, 71.547, 71.38, 71.212, 71.045, 70.877, 70.71, 70.542, 70.375, 70.207, 70.039, 69.872, 69.704, 69.537, 69.369, 69.202, 69.034, 68.867, 68.699, 68.531, 68.364, 68.196, 68.029, 67.861, 67.694, 67.526, 67.359]}, "c_somaj": {"form": "liniar", "r2": 0.07198943757431464, "x": [0.4, 0.547, 0.695, 0.842, 0.99, 1.137, 1.285, 1.432, 1.58, 1.727, 1.875, 2.022, 2.169, 2.317, 2.464, 2.612, 2.759, 2.907, 3.054, 3.202, 3.349, 3.497, 3.644, 3.792, 3.939, 4.086, 4.234, 4.381, 4.529, 4.676, 4.824, 4.971, 5.119, 5.266, 5.414, 5.561, 5.708, 5.856, 6.003, 6.151, 6.298, 6.446, 6.593, 6.741, 6.888, 7.036, 7.183, 7.331, 7.478, 7.625, 7.773, 7.92, 8.068, 8.215, 8.363, 8.51, 8.658, 8.805, 8.953, 9.1], "y": [75.461, 75.345, 75.23, 75.114, 74.999, 74.883, 74.768, 74.652, 74.537, 74.421, 74.306, 74.19, 74.075, 73.959, 73.844, 73.728, 73.613, 73.497, 73.382, 73.266, 73.151, 73.035, 72.92, 72.804, 72.689, 72.574, 72.458, 72.343, 72.227, 72.112, 71.996, 71.881, 71.765, 71.65, 71.534, 71.419, 71.303, 71.188, 71.072, 70.957, 70.841, 70.726, 70.61, 70.495, 70.379, 70.264, 70.148, 70.033, 69.917, 69.802, 69.686, 69.571, 69.455, 69.34, 69.224, 69.109, 68.993, 68.878, 68.762, 68.647]}, "c_salariu": {"form": "logaritmic", "r2": 0.116236517615252, "x": [3822.0, 3871.288, 3920.576, 3969.864, 4019.153, 4068.441, 4117.729, 4167.017, 4216.305, 4265.593, 4314.881, 4364.169, 4413.458, 4462.746, 4512.034, 4561.322, 4610.61, 4659.898, 4709.186, 4758.475, 4807.763, 4857.051, 4906.339, 4955.627, 5004.915, 5054.203, 5103.492, 5152.78, 5202.068, 5251.356, 5300.644, 5349.932, 5399.22, 5448.508, 5497.797, 5547.085, 5596.373, 5645.661, 5694.949, 5744.237, 5793.525, 5842.814, 5892.102, 5941.39, 5990.678, 6039.966, 6089.254, 6138.542, 6187.831, 6237.119, 6286.407, 6335.695, 6384.983, 6434.271, 6483.559, 6532.847, 6582.136, 6631.424, 6680.712, 6730.0], "y": [70.195, 70.426, 70.654, 70.879, 71.101, 71.321, 71.538, 71.752, 71.964, 72.173, 72.38, 72.585, 72.787, 72.987, 73.185, 73.381, 73.575, 73.766, 73.956, 74.143, 74.329, 74.513, 74.695, 74.875, 75.053, 75.23, 75.404, 75.578, 75.749, 75.919, 76.087, 76.254, 76.419, 76.583, 76.745, 76.906, 77.065, 77.223, 77.38, 77.535, 77.689, 77.842, 77.993, 78.143, 78.292, 78.44, 78.586, 78.731, 78.876, 79.018, 79.16, 79.301, 79.441, 79.579, 79.717, 79.853, 79.988, 80.123, 80.256, 80.389]}, "c_studsup": {"form": "liniar", "r2": 0.08638362726296667, "x": [7.24, 7.713, 8.186, 8.659, 9.132, 9.605, 10.078, 10.551, 11.024, 11.497, 11.971, 12.444, 12.917, 13.39, 13.863, 14.336, 14.809, 15.282, 15.755, 16.228, 16.701, 17.174, 17.647, 18.12, 18.593, 19.066, 19.539, 20.012, 20.485, 20.958, 21.432, 21.905, 22.378, 22.851, 23.324, 23.797, 24.27, 24.743, 25.216, 25.689, 26.162, 26.635, 27.108, 27.581, 28.054, 28.527, 29.0, 29.473, 29.946, 30.419, 30.893, 31.366, 31.839, 32.312, 32.785, 33.258, 33.731, 34.204, 34.677, 35.15], "y": [70.235, 70.399, 70.563, 70.727, 70.892, 71.056, 71.22, 71.384, 71.548, 71.712, 71.877, 72.041, 72.205, 72.369, 72.533, 72.697, 72.862, 73.026, 73.19, 73.354, 73.518, 73.682, 73.847, 74.011, 74.175, 74.339, 74.503, 74.667, 74.832, 74.996, 75.16, 75.324, 75.488, 75.652, 75.817, 75.981, 76.145, 76.309, 76.473, 76.638, 76.802, 76.966, 77.13, 77.294, 77.458, 77.623, 77.787, 77.951, 78.115, 78.279, 78.443, 78.608, 78.772, 78.936, 79.1, 79.264, 79.428, 79.593, 79.757, 79.921]}, "c_mobil": {"form": "liniar", "r2": 0.06571039993609118, "x": [6.85, 7.594, 8.337, 9.081, 9.824, 10.568, 11.311, 12.055, 12.798, 13.542, 14.286, 15.029, 15.773, 16.516, 17.26, 18.003, 18.747, 19.491, 20.234, 20.978, 21.721, 22.465, 23.208, 23.952, 24.695, 25.439, 26.183, 26.926, 27.67, 28.413, 29.157, 29.9, 30.644, 31.387, 32.131, 32.875, 33.618, 34.362, 35.105, 35.849, 36.592, 37.336, 38.079, 38.823, 39.567, 40.31, 41.054, 41.797, 42.541, 43.284, 44.028, 44.772, 45.515, 46.259, 47.002, 47.746, 48.489, 49.233, 49.976, 50.72], "y": [73.925, 73.773, 73.62, 73.467, 73.314, 73.162, 73.009, 72.856, 72.703, 72.551, 72.398, 72.245, 72.092, 71.94, 71.787, 71.634, 71.482, 71.329, 71.176, 71.023, 70.871, 70.718, 70.565, 70.412, 70.26, 70.107, 69.954, 69.801, 69.649, 69.496, 69.343, 69.191, 69.038, 68.885, 68.732, 68.58, 68.427, 68.274, 68.121, 67.969, 67.816, 67.663, 67.51, 67.358, 67.205, 67.052, 66.899, 66.747, 66.594, 66.441, 66.289, 66.136, 65.983, 65.83, 65.678, 65.525, 65.372, 65.219, 65.067, 64.914]}, "c_sup3049": {"form": "liniar", "r2": 0.13437469956714765, "x": [14.0, 14.705, 15.41, 16.115, 16.82, 17.525, 18.231, 18.936, 19.641, 20.346, 21.051, 21.756, 22.461, 23.166, 23.871, 24.576, 25.281, 25.986, 26.692, 27.397, 28.102, 28.807, 29.512, 30.217, 30.922, 31.627, 32.332, 33.037, 33.742, 34.447, 35.153, 35.858, 36.563, 37.268, 37.973, 38.678, 39.383, 40.088, 40.793, 41.498, 42.203, 42.908, 43.614, 44.319, 45.024, 45.729, 46.434, 47.139, 47.844, 48.549, 49.254, 49.959, 50.664, 51.369, 52.075, 52.78, 53.485, 54.19, 54.895, 55.6], "y": [69.383, 69.586, 69.788, 69.991, 70.194, 70.397, 70.599, 70.802, 71.005, 71.208, 71.411, 71.613, 71.816, 72.019, 72.222, 72.424, 72.627, 72.83, 73.033, 73.235, 73.438, 73.641, 73.844, 74.047, 74.249, 74.452, 74.655, 74.858, 75.06, 75.263, 75.466, 75.669, 75.871, 76.074, 76.277, 76.48, 76.683, 76.885, 77.088, 77.291, 77.494, 77.696, 77.899, 78.102, 78.305, 78.507, 78.71, 78.913, 79.116, 79.319, 79.521, 79.724, 79.927, 80.13, 80.332, 80.535, 80.738, 80.941, 81.144, 81.346]}, "c_abandon": {"form": "liniar", "r2": 0.01912428344865602, "x": [0.2, 0.249, 0.298, 0.347, 0.397, 0.446, 0.495, 0.544, 0.593, 0.642, 0.692, 0.741, 0.79, 0.839, 0.888, 0.937, 0.986, 1.036, 1.085, 1.134, 1.183, 1.232, 1.281, 1.331, 1.38, 1.429, 1.478, 1.527, 1.576, 1.625, 1.675, 1.724, 1.773, 1.822, 1.871, 1.92, 1.969, 2.019, 2.068, 2.117, 2.166, 2.215, 2.264, 2.314, 2.363, 2.412, 2.461, 2.51, 2.559, 2.608, 2.658, 2.707, 2.756, 2.805, 2.854, 2.903, 2.953, 3.002, 3.051, 3.1], "y": [74.004, 73.937, 73.871, 73.805, 73.739, 73.672, 73.606, 73.54, 73.473, 73.407, 73.341, 73.274, 73.208, 73.142, 73.076, 73.009, 72.943, 72.877, 72.81, 72.744, 72.678, 72.612, 72.545, 72.479, 72.413, 72.346, 72.28, 72.214, 72.147, 72.081, 72.015, 71.949, 71.882, 71.816, 71.75, 71.683, 71.617, 71.551, 71.485, 71.418, 71.352, 71.286, 71.219, 71.153, 71.087, 71.02, 70.954, 70.888, 70.822, 70.755, 70.689, 70.623, 70.556, 70.49, 70.424, 70.357, 70.291, 70.225, 70.159, 70.092]}};
+const MODEL_CMP = [{"tag": "Model final (5 predictori)", "k": 5, "r2": 0.703, "r2adj": 0.661, "loo": 0.592}, {"tag": "+ abandon școlar", "k": 6, "r2": 0.703, "r2adj": 0.652, "loo": 0.561}, {"tag": "+ studii sup. 30–49", "k": 6, "r2": 0.703, "r2adj": 0.652, "loo": 0.566}, {"tag": "+ ambele (7 predictori)", "k": 7, "r2": 0.703, "r2adj": 0.642, "loo": 0.531}];
+const REPL = {"fit": [{"an": 2024, "r2": 0.536, "r2adj": 0.471, "r2wls": 0.497, "loo": 0.418, "media": 74.2}, {"an": 2025, "r2": 0.546, "r2adj": 0.483, "r2wls": 0.536, "loo": 0.411, "media": 72.0}, {"an": 2026, "r2": 0.703, "r2adj": 0.661, "r2wls": 0.683, "loo": 0.592, "media": 72.5}], "betas": {"2024": {"rural_pct": [-0.342, 0.0894], "ln_PIB": [-0.073, 0.7717], "ln_stud": [0.468, 0.0216], "mobilitate": [-0.544, 0.0053], "somaj": [-0.133, 0.3768]}, "2025": {"rural_pct": [-0.269, 0.178], "ln_PIB": [-0.166, 0.5073], "ln_stud": [0.53, 0.0095], "mobilitate": [-0.479, 0.0119], "somaj": [-0.27, 0.0729]}, "2026": {"rural_pct": [-0.347, 0.0351], "ln_PIB": [0.003, 0.9891], "ln_stud": [0.474, 0.0045], "mobilitate": [-0.677, 0.0], "somaj": [-0.256, 0.0373]}}};
+const SPAT = {"rho": 0.28, "LR": 3.78, "p_LR": 0.0517, "r2_sar": 0.695, "lam": 0.533, "moran_ols": {"I": 0.192, "p": 0.0197}, "moran_sar": {"I": 0.079, "p": 0.2618}, "coef": [{"t": "const", "b_ols": 91.516, "p_ols": 0.0, "b_sar": 67.325, "p_sar": 0.0}, {"t": "rural_pct", "b_ols": -0.168, "p_ols": 0.0351, "b_sar": -0.17, "p_sar": 0.0116}, {"t": "ln_PIB", "b_ols": 0.051, "p_ols": 0.9891, "b_sar": 1.089, "p_sar": 0.7402}, {"t": "ln_stud", "b_ols": 2.544, "p_ols": 0.0045, "b_sar": 2.424, "p_sar": 0.001}, {"t": "somaj", "b_ols": -0.746, "p_ols": 0.0373, "b_sar": -0.612, "p_sar": 0.0433}, {"t": "mobilitate", "b_ols": -0.542, "p_ols": 0.0, "b_sar": -0.491, "p_sar": 0.0}], "beta_sar": {"rural_pct": -0.352, "ln_PIB": 0.058, "ln_stud": 0.451, "somaj": -0.21, "mobilitate": -0.613}};
+const INFL = {"thresh": {"lev": 0.286, "cook": 0.095, "dfb": 0.309}, "top": [{"j": "Ilfov", "mob": 50.7, "bac": 55.3, "h": 0.693, "cook": 0.447, "dfb": 1.176, "t": 1.09}, {"j": "Mehedinți", "mob": 10.1, "bac": 60.1, "h": 0.145, "cook": 0.17, "dfb": -0.199, "t": -2.65}, {"j": "Maramureș", "mob": 7.7, "bac": 72.5, "h": 0.151, "cook": 0.092, "dfb": 0.289, "t": -1.82}, {"j": "Brașov", "mob": 25.2, "bac": 81.3, "h": 0.144, "cook": 0.091, "dfb": 0.384, "t": 1.87}, {"j": "Brăila", "mob": 12.6, "bac": 79.8, "h": 0.137, "cook": 0.048, "dfb": -0.008, "t": 1.37}, {"j": "Cluj", "mob": 18.0, "bac": 85.3, "h": 0.147, "cook": 0.043, "dfb": -0.099, "t": 1.22}], "refits": [{"tag": "Toate județele", "**": 1, "n": 42, "b": -0.542, "beta": -0.677, "p": 0.0, "r2": 0.703}, {"tag": "Fără Ilfov", "n": 41, "b": -0.68, "beta": -0.648, "p": 0.0004, "r2": 0.651}, {"tag": "Fără București", "n": 41, "b": -0.551, "beta": -0.656, "p": 0.0001, "r2": 0.694}, {"tag": "Fără Ilfov + București", "n": 40, "b": -0.68, "beta": -0.565, "p": 0.0004, "r2": 0.64}, {"tag": "Fără Ilfov + Buc. + Timiș", "n": 39, "b": -0.618, "beta": -0.452, "p": 0.0032, "r2": 0.645}], "huber": {"b": -0.542, "p": 0.0}};
+const GEO = [{"cod":"SM","p":[[[22.563,47.757],[22.638,47.772],[22.752,47.828],[22.764,47.875],[22.916,47.959],[22.924,48.005],[23.004,47.983],[23.063,48.007],[23.099,48.071],[23.139,48.098],[23.231,48.08],[23.36,47.993],[23.485,47.974],[23.549,47.889],[23.63,47.838],[23.621,47.816],[23.454,47.735],[23.343,47.749],[23.244,47.736],[23.247,47.707],[23.353,47.676],[23.36,47.643],[23.268,47.538],[23.217,47.535],[23.127,47.581],[23.058,47.526],[23.031,47.48],[22.969,47.444],[22.998,47.416],[23.09,47.404],[23.11,47.377],[23.045,47.314],[22.912,47.372],[22.802,47.393],[22.581,47.321],[22.555,47.376],[22.483,47.41],[22.352,47.406],[22.281,47.496],[22.213,47.539],[22.168,47.595],[22.208,47.674],[22.273,47.724],[22.396,47.736],[22.424,47.783],[22.454,47.787],[22.563,47.757]]]},{"cod":"AR","p":[[[21.374,46.618],[21.424,46.658],[21.492,46.645],[21.826,46.658],[21.979,46.613],[22.094,46.607],[22.153,46.576],[22.209,46.495],[22.393,46.427],[22.42,46.39],[22.707,46.369],[22.755,46.334],[22.69,46.3],[22.619,46.218],[22.484,46.217],[22.447,46.197],[22.402,45.992],[22.318,45.918],[22.229,45.893],[22.131,45.905],[22.069,45.949],[21.955,45.982],[21.912,45.978],[21.889,45.935],[21.827,45.946],[21.816,45.905],[21.723,45.949],[21.67,45.902],[21.634,45.929],[21.636,45.956],[21.584,45.992],[21.526,45.997],[21.507,46.033],[21.459,46.039],[21.362,45.971],[21.314,45.988],[21.251,45.969],[21.189,46.02],[21.155,46.01],[21.142,45.977],[21.11,45.975],[21.069,46.02],[20.932,46.031],[20.86,46.096],[20.704,46.169],[20.71,46.188],[20.745,46.192],[20.739,46.237],[20.799,46.268],[20.999,46.252],[21.033,46.231],[21.099,46.276],[21.144,46.284],[21.179,46.384],[21.281,46.416],[21.245,46.477],[21.291,46.547],[21.301,46.604],[21.374,46.618]]]},{"cod":"BH","p":[[[21.424,46.658],[21.502,46.704],[21.505,46.723],[21.47,46.743],[21.503,46.805],[21.583,46.848],[21.59,46.909],[21.649,46.943],[21.671,46.993],[21.633,47.023],[21.764,47.105],[21.82,47.173],[21.862,47.297],[22.002,47.394],[21.989,47.493],[22.008,47.517],[22.168,47.595],[22.213,47.539],[22.281,47.496],[22.352,47.406],[22.483,47.41],[22.564,47.364],[22.581,47.321],[22.57,47.294],[22.495,47.181],[22.59,47.059],[22.719,46.979],[22.688,46.92],[22.76,46.895],[22.761,46.866],[22.739,46.828],[22.666,46.784],[22.734,46.724],[22.764,46.657],[22.808,46.619],[22.803,46.557],[22.74,46.565],[22.703,46.532],[22.688,46.422],[22.707,46.369],[22.665,46.367],[22.42,46.39],[22.393,46.427],[22.209,46.495],[22.153,46.576],[22.094,46.607],[21.979,46.613],[21.826,46.658],[21.492,46.645],[21.424,46.658]]]},{"cod":"TM","p":[[[20.608,46.129],[20.719,46.165],[20.86,46.096],[20.932,46.031],[21.069,46.02],[21.097,45.98],[21.125,45.973],[21.189,46.02],[21.251,45.969],[21.314,45.988],[21.362,45.971],[21.424,46.008],[21.431,46.034],[21.492,46.037],[21.526,45.997],[21.574,45.996],[21.627,45.964],[21.634,45.929],[21.67,45.902],[21.723,45.949],[21.816,45.905],[21.827,45.946],[21.889,45.935],[21.931,45.982],[22.069,45.949],[22.131,45.905],[22.22,45.893],[22.318,45.918],[22.355,45.95],[22.494,45.777],[22.544,45.769],[22.481,45.719],[22.454,45.666],[22.335,45.648],[22.264,45.586],[22.177,45.607],[22.116,45.576],[22.037,45.568],[22.036,45.536],[22.06,45.528],[22.008,45.505],[21.964,45.508],[21.902,45.56],[21.786,45.524],[21.669,45.564],[21.592,45.549],[21.569,45.496],[21.485,45.45],[21.474,45.374],[21.542,45.323],[21.554,45.28],[21.527,45.243],[21.527,45.185],[21.484,45.153],[21.406,45.2],[21.239,45.229],[21.139,45.304],[21.092,45.288],[20.981,45.333],[20.816,45.463],[20.767,45.479],[20.761,45.493],[20.8,45.531],[20.754,45.606],[20.786,45.753],[20.765,45.767],[20.727,45.736],[20.688,45.743],[20.646,45.789],[20.637,45.827],[20.572,45.888],[20.354,45.977],[20.306,46.054],[20.243,46.108],[20.283,46.144],[20.444,46.147],[20.469,46.174],[20.608,46.129]]]},{"cod":"MH","p":[[[23.008,44.1],[22.906,44.123],[22.691,44.229],[22.682,44.305],[22.583,44.328],[22.505,44.404],[22.505,44.435],[22.477,44.464],[22.484,44.5],[22.548,44.512],[22.58,44.565],[22.7,44.542],[22.759,44.565],[22.765,44.583],[22.7,44.631],[22.587,44.649],[22.484,44.724],[22.426,44.734],[22.305,44.677],[22.172,44.505],[22.104,44.51],[22.034,44.596],[22.169,44.609],[22.162,44.691],[22.228,44.811],[22.363,44.776],[22.396,44.751],[22.432,44.758],[22.567,45.024],[22.641,45.092],[22.741,45.033],[22.835,45.028],[22.918,44.973],[22.931,44.853],[23.027,44.769],[23.145,44.7],[23.342,44.656],[23.463,44.585],[23.489,44.55],[23.291,44.519],[23.31,44.506],[23.219,44.452],[23.206,44.416],[23.274,44.374],[23.173,44.343],[23.132,44.236],[23.139,44.171],[23.091,44.162],[23.008,44.1]]]},{"cod":"DJ","p":[[[22.92,43.834],[22.851,43.874],[22.875,43.972],[22.906,44.004],[23.023,44.032],[23.04,44.062],[23.031,44.093],[23.008,44.1],[23.091,44.162],[23.139,44.171],[23.132,44.236],[23.173,44.343],[23.276,44.381],[23.209,44.403],[23.219,44.452],[23.31,44.506],[23.288,44.515],[23.304,44.523],[23.475,44.539],[23.581,44.597],[23.732,44.624],[23.74,44.733],[23.776,44.723],[23.796,44.675],[23.872,44.642],[23.902,44.583],[23.958,44.53],[23.907,44.48],[23.91,44.458],[24.038,44.384],[24.159,44.264],[24.257,44.21],[24.248,44.16],[24.277,44.102],[24.221,44.101],[24.205,44.046],[24.287,44.017],[24.292,43.989],[24.254,43.96],[24.273,43.927],[24.26,43.893],[24.15,43.755],[23.743,43.843],[23.593,43.837],[23.485,43.881],[23.325,43.887],[23.132,43.848],[22.92,43.834]]]},{"cod":"CL","p":[[[27.227,44.121],[27.027,44.177],[26.884,44.157],[26.754,44.108],[26.416,44.064],[26.46,44.144],[26.451,44.207],[26.28,44.321],[26.342,44.401],[26.456,44.46],[26.46,44.474],[26.412,44.496],[26.416,44.515],[26.53,44.555],[26.633,44.527],[26.707,44.563],[26.784,44.526],[26.977,44.518],[27.097,44.488],[27.435,44.508],[27.605,44.488],[27.702,44.465],[27.78,44.418],[28.023,44.355],[27.994,44.304],[27.934,44.266],[27.789,44.24],[27.733,44.21],[27.569,44.196],[27.445,44.134],[27.292,44.152],[27.227,44.121]]]},{"cod":"TR","p":[[[25.733,43.719],[25.403,43.65],[25.252,43.705],[25.082,43.719],[24.964,43.75],[24.706,43.744],[24.662,43.756],[24.747,43.815],[24.631,44.01],[24.658,44.045],[24.841,44.116],[24.838,44.357],[24.851,44.39],[24.981,44.391],[25.022,44.416],[25.088,44.419],[25.19,44.453],[25.328,44.436],[25.398,44.502],[25.396,44.528],[25.514,44.506],[25.537,44.479],[25.494,44.407],[25.527,44.349],[25.55,44.329],[25.653,44.318],[25.709,44.282],[25.719,44.255],[25.719,44.16],[25.673,44.144],[25.64,44.045],[25.733,43.719]]]},{"cod":"GR","p":[[[26.332,44.055],[26.116,43.999],[26.054,43.934],[25.934,43.87],[25.781,43.732],[25.733,43.719],[25.64,44.045],[25.673,44.144],[25.719,44.16],[25.719,44.255],[25.709,44.282],[25.653,44.318],[25.55,44.329],[25.527,44.349],[25.494,44.407],[25.537,44.479],[25.514,44.506],[25.599,44.553],[25.907,44.566],[25.932,44.527],[25.889,44.401],[25.905,44.369],[26.147,44.26],[26.201,44.266],[26.28,44.321],[26.438,44.226],[26.462,44.161],[26.416,44.064],[26.332,44.055]]]},{"cod":"CT","p":[[[27.384,44.015],[27.285,44.072],[27.253,44.122],[27.292,44.152],[27.445,44.134],[27.569,44.196],[27.733,44.21],[27.789,44.24],[27.934,44.266],[27.994,44.304],[28.048,44.398],[28.11,44.443],[28.086,44.505],[28.004,44.54],[28.022,44.552],[28.031,44.637],[27.978,44.679],[27.899,44.708],[27.877,44.744],[27.895,44.769],[27.946,44.778],[28.014,44.758],[28.145,44.783],[28.282,44.711],[28.325,44.718],[28.347,44.761],[28.404,44.761],[28.455,44.718],[28.527,44.696],[28.671,44.711],[28.785,44.68],[28.792,44.645],[28.869,44.662],[28.912,44.696],[28.898,44.717],[28.983,44.693],[28.962,44.639],[28.939,44.634],[28.973,44.67],[28.975,44.687],[28.952,44.696],[28.958,44.679],[28.918,44.683],[28.774,44.601],[28.795,44.634],[28.767,44.634],[28.754,44.614],[28.788,44.586],[28.733,44.568],[28.733,44.552],[28.747,44.566],[28.774,44.552],[28.746,44.486],[28.758,44.465],[28.778,44.507],[28.906,44.588],[28.925,44.621],[28.844,44.494],[28.707,44.381],[28.693,44.346],[28.664,44.348],[28.635,44.316],[28.631,44.264],[28.672,44.169],[28.631,44.154],[28.672,43.997],[28.609,43.874],[28.578,43.741],[28.435,43.735],[28.221,43.762],[28.015,43.83],[27.981,43.849],[27.912,43.993],[27.722,43.949],[27.633,44.03],[27.384,44.015]]]},{"cod":"OT","p":[[[24.159,43.753],[24.204,43.839],[24.26,43.893],[24.273,43.927],[24.254,43.96],[24.292,43.989],[24.287,44.017],[24.205,44.046],[24.221,44.101],[24.277,44.102],[24.248,44.16],[24.257,44.21],[24.159,44.264],[24.052,44.373],[23.91,44.458],[23.907,44.48],[23.996,44.547],[24.042,44.546],[24.084,44.517],[24.15,44.566],[24.246,44.576],[24.278,44.62],[24.309,44.577],[24.333,44.583],[24.3,44.656],[24.286,44.746],[24.33,44.79],[24.353,44.86],[24.397,44.91],[24.427,44.912],[24.438,44.85],[24.465,44.82],[24.564,44.891],[24.57,44.848],[24.633,44.757],[24.731,44.732],[24.69,44.705],[24.741,44.591],[24.765,44.416],[24.851,44.39],[24.838,44.357],[24.841,44.116],[24.658,44.045],[24.631,44.01],[24.745,43.807],[24.662,43.756],[24.466,43.802],[24.358,43.76],[24.159,43.753]]]},{"cod":"CS","p":[[[21.453,44.87],[21.536,44.889],[21.531,44.925],[21.408,44.958],[21.351,44.998],[21.422,45.031],[21.442,45.093],[21.494,45.119],[21.484,45.153],[21.532,45.195],[21.527,45.243],[21.553,45.274],[21.55,45.309],[21.47,45.391],[21.485,45.45],[21.569,45.496],[21.592,45.549],[21.669,45.564],[21.786,45.524],[21.902,45.56],[21.964,45.508],[22.008,45.505],[22.06,45.528],[22.036,45.536],[22.037,45.568],[22.116,45.576],[22.177,45.607],[22.264,45.586],[22.335,45.648],[22.445,45.663],[22.483,45.612],[22.537,45.597],[22.542,45.57],[22.576,45.567],[22.678,45.493],[22.698,45.413],[22.675,45.374],[22.704,45.307],[22.669,45.24],[22.601,45.198],[22.563,45.147],[22.635,45.128],[22.641,45.092],[22.567,45.024],[22.432,44.758],[22.396,44.751],[22.253,44.812],[22.222,44.806],[22.162,44.691],[22.174,44.621],[22.161,44.602],[22.034,44.596],[21.994,44.659],[21.872,44.696],[21.757,44.677],[21.656,44.688],[21.578,44.778],[21.412,44.785],[21.343,44.832],[21.369,44.865],[21.453,44.87]]]},{"cod":"BT","p":[[[26.689,48.275],[26.822,48.253],[26.898,48.209],[26.908,48.185],[26.938,48.205],[26.998,48.167],[26.967,48.143],[27.043,48.127],[27.042,48.077],[27.109,48.034],[27.089,48.02],[27.096,48.006],[27.121,48.013],[27.169,47.983],[27.151,47.958],[27.178,47.938],[27.161,47.922],[27.212,47.89],[27.212,47.848],[27.253,47.828],[27.219,47.814],[27.288,47.752],[27.281,47.693],[27.431,47.573],[27.307,47.558],[27.232,47.491],[27.092,47.518],[27.071,47.498],[27.092,47.454],[27.056,47.436],[26.957,47.477],[26.789,47.477],[26.734,47.493],[26.658,47.427],[26.617,47.431],[26.562,47.478],[26.562,47.528],[26.527,47.614],[26.283,47.826],[26.119,47.917],[26.103,47.978],[26.173,47.993],[26.255,48.072],[26.287,48.125],[26.303,48.212],[26.689,48.275]]]},{"cod":"IS","p":[[[27.431,47.573],[27.473,47.492],[27.576,47.46],[27.572,47.375],[27.637,47.307],[27.733,47.276],[27.788,47.204],[27.807,47.145],[27.85,47.129],[27.844,47.114],[27.939,47.047],[28.028,47.033],[28.102,46.935],[28.097,46.903],[28.114,46.895],[28.123,46.842],[28.031,46.819],[27.981,46.834],[27.956,46.817],[27.833,46.841],[27.826,46.917],[27.801,46.912],[27.786,46.878],[27.626,46.974],[27.621,46.91],[27.667,46.904],[27.648,46.881],[27.559,46.888],[27.53,46.86],[27.476,46.851],[27.205,46.86],[27.143,46.945],[27.239,46.992],[27.16,47.071],[27.109,47.074],[27.039,47.031],[26.96,47.038],[26.928,47.006],[26.872,47.011],[26.749,47.067],[26.648,47.076],[26.603,47.156],[26.482,47.254],[26.578,47.279],[26.511,47.324],[26.505,47.35],[26.656,47.353],[26.676,47.404],[26.658,47.427],[26.725,47.49],[26.957,47.477],[27.041,47.434],[27.092,47.454],[27.071,47.498],[27.092,47.518],[27.232,47.491],[27.307,47.558],[27.431,47.573]]]},{"cod":"VS","p":[[[28.123,46.842],[28.244,46.635],[28.219,46.504],[28.246,46.476],[28.247,46.436],[28.19,46.351],[28.178,46.287],[28.109,46.234],[28.145,46.183],[28.108,46.096],[28.056,46.09],[27.904,46.125],[27.836,46.082],[27.803,46.113],[27.631,46.128],[27.614,46.115],[27.645,46.062],[27.639,46.011],[27.61,46.001],[27.533,46.117],[27.513,46.289],[27.479,46.397],[27.338,46.585],[27.324,46.672],[27.226,46.743],[27.236,46.77],[27.205,46.86],[27.476,46.851],[27.53,46.86],[27.559,46.888],[27.648,46.881],[27.667,46.904],[27.621,46.91],[27.626,46.974],[27.786,46.878],[27.801,46.912],[27.826,46.917],[27.833,46.841],[27.956,46.817],[27.981,46.834],[28.031,46.819],[28.123,46.842]]]},{"cod":"GL","p":[[[28.108,46.096],[28.083,46.015],[28.125,45.918],[28.113,45.825],[28.155,45.762],[28.168,45.632],[28.108,45.624],[28.062,45.594],[28.141,45.56],[28.164,45.531],[28.166,45.495],[28.215,45.45],[28.182,45.413],[28.116,45.428],[28.03,45.395],[27.855,45.407],[27.765,45.433],[27.703,45.477],[27.58,45.493],[27.544,45.525],[27.506,45.625],[27.385,45.718],[27.25,45.969],[27.254,46.002],[27.309,46.052],[27.429,46.082],[27.476,46.114],[27.533,46.117],[27.62,45.996],[27.644,46.053],[27.614,46.115],[27.631,46.128],[27.803,46.113],[27.836,46.082],[27.904,46.125],[28.056,46.09],[28.108,46.096]]]},{"cod":"SV","p":[[[25.966,47.965],[26.103,47.978],[26.127,47.906],[26.283,47.826],[26.527,47.614],[26.568,47.468],[26.673,47.413],[26.656,47.353],[26.505,47.35],[26.511,47.324],[26.578,47.279],[26.482,47.254],[26.433,47.289],[26.376,47.297],[26.223,47.254],[25.982,47.257],[25.891,47.232],[25.783,47.278],[25.774,47.262],[25.82,47.207],[25.696,47.123],[25.671,47.058],[25.568,47.049],[25.39,47.14],[25.312,47.123],[25.27,47.066],[25.069,47.103],[25.076,47.228],[25.028,47.247],[25.057,47.315],[25.003,47.387],[25.049,47.4],[25.039,47.435],[25.084,47.458],[25.089,47.483],[24.956,47.582],[25.032,47.612],[24.942,47.716],[25.08,47.743],[25.219,47.878],[25.262,47.899],[25.966,47.965]]]},{"cod":"MM","p":[[[23.563,48.006],[23.78,47.988],[23.855,47.934],[24.009,47.961],[24.209,47.898],[24.347,47.921],[24.409,47.952],[24.562,47.941],[24.649,47.895],[24.679,47.84],[24.808,47.796],[24.878,47.719],[24.942,47.716],[25.032,47.612],[24.956,47.582],[24.837,47.575],[24.759,47.537],[24.571,47.532],[24.366,47.559],[24.282,47.53],[24.245,47.482],[24.126,47.457],[24.107,47.411],[24.008,47.325],[23.841,47.333],[23.762,47.305],[23.657,47.365],[23.48,47.363],[23.272,47.413],[23.09,47.404],[22.968,47.43],[23.117,47.576],[23.25,47.531],[23.324,47.585],[23.361,47.668],[23.247,47.707],[23.256,47.745],[23.454,47.735],[23.621,47.816],[23.62,47.85],[23.549,47.889],[23.485,47.974],[23.514,47.999],[23.563,48.006]]]},{"cod":"TL","p":[[[28.238,45.452],[28.286,45.422],[28.281,45.402],[28.33,45.323],[28.577,45.248],[28.71,45.227],[28.803,45.244],[28.76,45.274],[28.79,45.292],[28.79,45.321],[28.832,45.322],[28.93,45.279],[28.953,45.285],[28.974,45.324],[29.322,45.444],[29.57,45.395],[29.65,45.346],[29.666,45.231],[29.624,45.21],[29.667,45.164],[29.7,45.162],[29.664,45.117],[29.63,44.908],[29.605,44.88],[29.618,44.861],[29.562,44.82],[29.156,44.784],[29.001,44.689],[28.975,44.745],[29.098,44.775],[29.145,44.827],[29.096,44.875],[29.104,44.84],[29.06,44.832],[29.049,44.847],[29.042,44.926],[29.099,44.957],[29.102,44.98],[28.983,45.012],[28.88,44.955],[28.864,44.922],[28.874,44.875],[28.952,44.827],[28.925,44.813],[28.946,44.765],[28.808,44.727],[28.787,44.693],[28.808,44.696],[28.804,44.684],[28.671,44.711],[28.527,44.696],[28.455,44.718],[28.404,44.761],[28.347,44.761],[28.325,44.718],[28.282,44.711],[28.196,44.768],[28.055,44.777],[28.127,44.896],[28.144,45.043],[28.131,45.089],[28.178,45.135],[28.098,45.184],[28.131,45.238],[28.122,45.25],[28.041,45.258],[27.987,45.292],[28.044,45.411],[28.116,45.428],[28.182,45.413],[28.238,45.452]]]},{"cod":"CJ","p":[[[24.008,47.325],[23.998,47.296],[23.936,47.246],[23.955,47.156],[24.127,47.082],[24.161,46.955],[24.239,46.899],[24.197,46.785],[24.157,46.776],[24.109,46.717],[24.121,46.644],[24.046,46.618],[24.023,46.571],[24.033,46.534],[23.972,46.489],[23.988,46.442],[23.876,46.452],[23.691,46.436],[23.674,46.429],[23.676,46.404],[23.655,46.401],[23.611,46.424],[23.624,46.473],[23.54,46.477],[23.404,46.527],[23.303,46.514],[23.248,46.484],[23.154,46.494],[23.07,46.456],[22.997,46.531],[22.833,46.538],[22.803,46.557],[22.803,46.627],[22.773,46.645],[22.721,46.739],[22.669,46.775],[22.674,46.8],[22.739,46.828],[22.761,46.866],[22.76,46.895],[22.688,46.92],[22.719,46.979],[22.868,46.972],[22.934,46.902],[23.018,46.876],[23.196,46.874],[23.242,46.937],[23.269,46.905],[23.347,46.892],[23.365,46.919],[23.342,46.959],[23.482,46.995],[23.454,47.066],[23.487,47.078],[23.51,47.127],[23.622,47.149],[23.697,47.203],[23.804,47.218],[23.829,47.294],[23.813,47.317],[23.841,47.333],[24.008,47.325]]]},{"cod":"BN","p":[[[24.197,46.785],[24.225,46.828],[24.234,46.913],[24.161,46.955],[24.127,47.082],[23.962,47.146],[23.936,47.234],[24.107,47.411],[24.126,47.457],[24.225,47.473],[24.282,47.53],[24.383,47.562],[24.571,47.532],[24.759,47.537],[24.871,47.583],[24.956,47.582],[25.084,47.494],[25.084,47.458],[25.037,47.43],[25.049,47.4],[25.003,47.387],[25.057,47.315],[25.028,47.247],[25.076,47.228],[25.069,47.103],[24.899,47.067],[24.816,47.022],[24.736,46.894],[24.637,46.915],[24.582,46.895],[24.484,46.767],[24.346,46.745],[24.197,46.785]]]},{"cod":"SJ","p":[[[23.813,47.317],[23.829,47.294],[23.804,47.218],[23.697,47.203],[23.622,47.149],[23.51,47.127],[23.487,47.078],[23.454,47.066],[23.482,46.995],[23.342,46.959],[23.365,46.919],[23.356,46.896],[23.269,46.905],[23.23,46.935],[23.196,46.874],[23.018,46.876],[22.934,46.902],[22.868,46.972],[22.719,46.979],[22.59,47.059],[22.495,47.181],[22.581,47.321],[22.782,47.393],[22.912,47.372],[23.045,47.314],[23.11,47.362],[23.09,47.404],[23.141,47.417],[23.272,47.413],[23.48,47.363],[23.657,47.365],[23.75,47.307],[23.813,47.317]]]},{"cod":"DB","p":[[[26.029,44.738],[25.95,44.666],[25.988,44.645],[25.987,44.629],[25.907,44.566],[25.599,44.553],[25.514,44.506],[25.396,44.528],[25.398,44.502],[25.348,44.449],[25.279,44.437],[25.3,44.465],[25.292,44.522],[25.317,44.566],[25.254,44.59],[25.191,44.655],[25.219,44.69],[25.182,44.727],[25.205,44.767],[25.216,44.859],[25.194,44.949],[25.235,45.016],[25.163,45.13],[25.189,45.191],[25.236,45.168],[25.271,45.192],[25.334,45.338],[25.309,45.388],[25.37,45.399],[25.43,45.452],[25.459,45.333],[25.518,45.287],[25.526,45.224],[25.677,45.059],[25.711,44.957],[25.79,44.946],[25.819,44.908],[25.825,44.837],[25.916,44.816],[26.029,44.738]]]},{"cod":"IF","p":[[[25.907,44.566],[25.987,44.629],[25.988,44.645],[25.95,44.666],[26.042,44.753],[26.187,44.768],[26.328,44.751],[26.36,44.685],[26.44,44.644],[26.368,44.565],[26.434,44.523],[26.412,44.496],[26.46,44.468],[26.342,44.401],[26.226,44.281],[26.147,44.26],[25.895,44.382],[25.898,44.446],[25.932,44.527],[25.907,44.566]]]},{"cod":"AG","p":[[[25.309,45.388],[25.334,45.338],[25.271,45.192],[25.236,45.168],[25.189,45.191],[25.163,45.13],[25.235,45.016],[25.196,44.965],[25.216,44.859],[25.205,44.767],[25.182,44.727],[25.219,44.69],[25.188,44.667],[25.227,44.609],[25.317,44.566],[25.292,44.522],[25.3,44.465],[25.279,44.437],[25.145,44.447],[24.966,44.388],[24.772,44.408],[24.725,44.651],[24.69,44.705],[24.731,44.732],[24.633,44.757],[24.57,44.848],[24.564,44.891],[24.465,44.82],[24.438,44.85],[24.512,44.914],[24.488,44.96],[24.537,45.136],[24.495,45.216],[24.49,45.309],[24.517,45.349],[24.494,45.435],[24.539,45.53],[24.527,45.562],[24.772,45.603],[24.839,45.563],[24.984,45.58],[25.095,45.57],[25.206,45.516],[25.309,45.388]]]},{"cod":"GJ","p":[[[23.439,45.303],[23.586,45.353],[23.798,45.338],[23.836,45.307],[23.821,45.248],[23.842,45.177],[23.779,44.948],[23.789,44.78],[23.776,44.723],[23.735,44.729],[23.737,44.629],[23.581,44.597],[23.489,44.55],[23.463,44.585],[23.342,44.656],[23.103,44.718],[22.937,44.842],[22.913,44.921],[22.918,44.973],[22.823,45.033],[22.723,45.04],[22.641,45.092],[22.635,45.128],[22.563,45.147],[22.601,45.198],[22.669,45.24],[22.881,45.295],[23.012,45.259],[23.091,45.279],[23.174,45.269],[23.358,45.321],[23.439,45.303]]]},{"cod":"HD","p":[[[23.586,45.353],[23.439,45.303],[23.358,45.321],[23.174,45.269],[23.091,45.279],[23.012,45.259],[22.892,45.296],[22.669,45.24],[22.707,45.322],[22.675,45.374],[22.698,45.413],[22.678,45.493],[22.454,45.64],[22.445,45.663],[22.473,45.709],[22.544,45.769],[22.494,45.777],[22.355,45.95],[22.42,46.025],[22.407,46.071],[22.438,46.187],[22.484,46.217],[22.619,46.218],[22.69,46.3],[22.755,46.334],[22.813,46.311],[22.914,46.315],[22.967,46.219],[23.067,46.184],[23.095,46.139],[23.066,46.124],[23.074,46.105],[23.171,46.016],[23.226,46.0],[23.316,45.877],[23.375,45.695],[23.404,45.661],[23.411,45.603],[23.58,45.498],[23.6,45.382],[23.586,45.353]]]},{"cod":"VL","p":[[[23.586,45.353],[23.6,45.382],[23.584,45.447],[23.659,45.454],[23.794,45.508],[24.068,45.496],[24.169,45.537],[24.322,45.563],[24.527,45.562],[24.539,45.53],[24.494,45.435],[24.517,45.349],[24.49,45.309],[24.495,45.216],[24.537,45.136],[24.488,44.96],[24.512,44.914],[24.438,44.85],[24.44,44.897],[24.397,44.91],[24.286,44.746],[24.3,44.656],[24.333,44.583],[24.309,44.577],[24.278,44.62],[24.246,44.576],[24.15,44.566],[24.084,44.517],[24.02,44.551],[23.958,44.53],[23.902,44.583],[23.872,44.642],[23.788,44.682],[23.779,44.948],[23.842,45.177],[23.821,45.248],[23.836,45.307],[23.798,45.338],[23.586,45.353]]]},{"cod":"PH","p":[[[26.214,44.76],[26.164,44.768],[26.017,44.74],[25.916,44.816],[25.825,44.837],[25.814,44.922],[25.79,44.946],[25.711,44.957],[25.677,45.059],[25.526,45.224],[25.518,45.287],[25.459,45.333],[25.43,45.452],[25.651,45.485],[25.79,45.473],[25.846,45.438],[25.882,45.453],[25.911,45.509],[25.946,45.51],[26.046,45.482],[26.161,45.401],[26.208,45.334],[26.209,45.283],[26.262,45.218],[26.345,45.21],[26.379,45.184],[26.416,45.198],[26.416,45.161],[26.469,45.118],[26.489,45.025],[26.578,44.977],[26.543,44.926],[26.604,44.865],[26.535,44.81],[26.453,44.808],[26.411,44.783],[26.34,44.795],[26.27,44.76],[26.214,44.76]]]},{"cod":"CV","p":[[[26.485,46.021],[26.405,45.918],[26.38,45.803],[26.395,45.75],[26.329,45.618],[26.285,45.603],[26.235,45.626],[26.201,45.577],[26.1,45.564],[25.895,45.718],[25.769,45.765],[25.671,45.752],[25.669,45.785],[25.558,45.854],[25.567,46.039],[25.506,46.043],[25.448,46.092],[25.497,46.165],[25.605,46.251],[25.691,46.293],[25.744,46.263],[25.796,46.176],[25.898,46.116],[25.992,46.111],[26.252,46.15],[26.334,46.18],[26.41,46.136],[26.396,46.103],[26.485,46.021]]]},{"cod":"VN","p":[[[26.38,45.803],[26.405,45.918],[26.485,46.021],[26.6,46.009],[26.631,46.02],[26.636,46.057],[26.67,46.077],[26.973,46.061],[27.019,46.093],[27.112,46.081],[27.208,46.154],[27.307,46.174],[27.413,46.152],[27.455,46.173],[27.52,46.163],[27.533,46.117],[27.33,46.065],[27.261,46.012],[27.25,45.969],[27.385,45.718],[27.506,45.625],[27.544,45.525],[27.58,45.493],[27.483,45.457],[27.423,45.387],[27.308,45.397],[27.276,45.435],[27.217,45.449],[27.147,45.43],[27.138,45.468],[27.064,45.451],[27.006,45.482],[26.976,45.533],[26.907,45.545],[26.895,45.519],[26.843,45.525],[26.669,45.621],[26.569,45.625],[26.38,45.803]]]},{"cod":"BZ","p":[[[26.302,45.602],[26.329,45.618],[26.395,45.75],[26.38,45.803],[26.569,45.625],[26.669,45.621],[26.843,45.525],[26.895,45.519],[26.907,45.545],[26.976,45.533],[27.006,45.482],[27.05,45.454],[27.138,45.468],[27.147,45.43],[27.217,45.449],[27.276,45.435],[27.308,45.397],[27.423,45.387],[27.387,45.308],[27.31,45.286],[27.305,45.234],[27.167,45.238],[27.064,45.201],[27.085,45.155],[27.106,45.155],[27.126,45.186],[27.152,45.184],[27.164,45.132],[27.205,45.107],[27.21,45.062],[27.268,45.048],[27.246,44.948],[27.175,44.909],[27.203,44.873],[27.201,44.819],[27.174,44.801],[27.203,44.781],[27.124,44.76],[27.115,44.8],[27.052,44.823],[26.986,44.803],[26.919,44.826],[26.66,44.836],[26.547,44.916],[26.578,44.977],[26.489,45.025],[26.469,45.118],[26.416,45.161],[26.416,45.198],[26.379,45.184],[26.345,45.21],[26.262,45.218],[26.209,45.283],[26.214,45.319],[26.174,45.387],[26.046,45.482],[26.1,45.564],[26.201,45.577],[26.224,45.623],[26.302,45.602]]]},{"cod":"BV","p":[[[25.43,45.452],[25.37,45.399],[25.309,45.388],[25.206,45.516],[25.095,45.57],[24.984,45.58],[24.839,45.563],[24.787,45.6],[24.709,45.599],[24.692,45.696],[24.649,45.777],[24.754,45.82],[24.715,45.907],[24.799,45.948],[24.841,45.947],[24.839,45.983],[24.96,46.043],[24.986,46.103],[25.031,46.13],[25.33,46.165],[25.427,46.127],[25.454,46.106],[25.46,46.073],[25.506,46.043],[25.567,46.039],[25.558,45.854],[25.669,45.785],[25.671,45.752],[25.769,45.765],[25.895,45.718],[26.1,45.564],[26.046,45.482],[25.924,45.513],[25.882,45.453],[25.846,45.438],[25.79,45.473],[25.651,45.485],[25.43,45.452]]]},{"cod":"SB","p":[[[24.709,45.599],[24.527,45.562],[24.322,45.563],[24.169,45.537],[24.068,45.496],[23.794,45.508],[23.626,45.452],[23.653,45.481],[23.614,45.555],[23.632,45.618],[23.609,45.693],[23.648,45.779],[23.709,45.794],[23.763,45.855],[23.705,45.887],[23.705,45.926],[23.836,45.925],[23.864,45.946],[23.853,46.003],[23.872,46.018],[23.953,46.028],[24.014,46.005],[24.04,46.056],[24.192,46.16],[24.192,46.244],[24.303,46.25],[24.376,46.232],[24.674,46.266],[24.674,46.148],[24.707,46.085],[24.872,46.103],[24.982,46.064],[24.839,45.983],[24.841,45.947],[24.799,45.948],[24.715,45.907],[24.754,45.82],[24.649,45.777],[24.692,45.696],[24.709,45.599]]]},{"cod":"MS","p":[[[23.995,46.45],[23.972,46.489],[24.033,46.534],[24.023,46.571],[24.046,46.618],[24.121,46.644],[24.126,46.672],[24.105,46.705],[24.166,46.782],[24.346,46.745],[24.484,46.767],[24.582,46.895],[24.637,46.915],[24.736,46.894],[24.816,47.022],[24.899,47.067],[25.069,47.103],[25.205,47.076],[25.211,47.038],[25.264,46.982],[25.255,46.838],[25.289,46.758],[25.281,46.667],[25.166,46.574],[25.035,46.506],[25.013,46.44],[24.933,46.409],[24.968,46.382],[24.962,46.364],[24.87,46.325],[24.974,46.238],[25.056,46.23],[25.188,46.143],[25.031,46.13],[24.986,46.103],[24.982,46.064],[24.872,46.103],[24.721,46.08],[24.68,46.123],[24.662,46.232],[24.674,46.266],[24.376,46.232],[24.303,46.25],[24.192,46.244],[24.161,46.266],[24.143,46.313],[24.026,46.369],[24.057,46.427],[23.995,46.45]]]},{"cod":"HR","p":[[[25.992,46.111],[25.853,46.136],[25.789,46.183],[25.744,46.263],[25.691,46.293],[25.605,46.251],[25.497,46.165],[25.454,46.106],[25.313,46.167],[25.188,46.143],[25.056,46.23],[24.974,46.238],[24.877,46.316],[24.879,46.337],[24.967,46.371],[24.933,46.409],[25.013,46.44],[25.035,46.506],[25.166,46.574],[25.281,46.667],[25.289,46.758],[25.255,46.838],[25.268,46.967],[25.211,47.038],[25.205,47.076],[25.283,47.07],[25.312,47.123],[25.39,47.14],[25.568,47.049],[25.671,47.058],[25.737,47.039],[25.792,46.966],[25.866,46.913],[25.867,46.884],[25.817,46.87],[25.828,46.694],[25.901,46.63],[25.918,46.68],[26.009,46.668],[26.012,46.594],[26.07,46.487],[26.024,46.455],[26.025,46.413],[26.147,46.385],[26.167,46.362],[26.168,46.306],[26.262,46.328],[26.299,46.311],[26.252,46.15],[25.992,46.111]]]},{"cod":"NT","p":[[[25.86,46.883],[25.866,46.913],[25.792,46.966],[25.751,47.028],[25.671,47.058],[25.696,47.123],[25.82,47.207],[25.774,47.262],[25.783,47.278],[25.891,47.232],[25.982,47.257],[26.223,47.254],[26.353,47.293],[26.415,47.294],[26.552,47.207],[26.661,47.071],[26.749,47.067],[26.913,47.005],[26.96,47.038],[27.039,47.031],[27.109,47.074],[27.148,47.075],[27.239,46.992],[27.143,46.945],[27.2,46.873],[27.236,46.77],[27.226,46.743],[27.186,46.729],[27.066,46.751],[26.971,46.744],[26.938,46.764],[26.926,46.803],[26.895,46.814],[26.835,46.72],[26.714,46.74],[26.582,46.667],[26.454,46.666],[26.39,46.633],[26.3,46.635],[26.299,46.665],[26.254,46.704],[26.124,46.658],[25.927,46.682],[25.907,46.675],[25.911,46.629],[25.889,46.635],[25.828,46.694],[25.817,46.87],[25.86,46.883]]]},{"cod":"BC","p":[[[26.485,46.021],[26.396,46.103],[26.41,46.136],[26.342,46.178],[26.252,46.15],[26.293,46.32],[26.168,46.306],[26.167,46.362],[26.147,46.385],[26.025,46.413],[26.024,46.455],[26.07,46.487],[26.012,46.594],[26.009,46.668],[26.143,46.66],[26.254,46.704],[26.299,46.665],[26.3,46.635],[26.408,46.635],[26.454,46.666],[26.582,46.667],[26.714,46.74],[26.835,46.72],[26.895,46.814],[26.926,46.803],[26.938,46.764],[26.971,46.744],[27.066,46.751],[27.186,46.729],[27.226,46.743],[27.324,46.672],[27.338,46.585],[27.442,46.459],[27.502,46.336],[27.52,46.163],[27.455,46.173],[27.413,46.152],[27.307,46.174],[27.208,46.154],[27.112,46.081],[27.019,46.093],[26.973,46.061],[26.67,46.077],[26.636,46.057],[26.631,46.02],[26.6,46.009],[26.485,46.021]]]},{"cod":"AB","p":[[[22.813,46.311],[22.707,46.369],[22.688,46.422],[22.692,46.506],[22.74,46.565],[22.833,46.538],[22.997,46.531],[23.077,46.455],[23.154,46.494],[23.248,46.484],[23.303,46.514],[23.404,46.527],[23.54,46.477],[23.624,46.473],[23.611,46.424],[23.655,46.401],[23.676,46.404],[23.674,46.429],[23.691,46.436],[24.027,46.448],[24.059,46.42],[24.022,46.377],[24.143,46.313],[24.161,46.266],[24.192,46.244],[24.197,46.178],[24.04,46.056],[24.014,46.005],[23.953,46.028],[23.872,46.018],[23.853,46.003],[23.864,45.946],[23.836,45.925],[23.701,45.92],[23.705,45.887],[23.763,45.855],[23.709,45.794],[23.648,45.779],[23.612,45.711],[23.632,45.618],[23.614,45.555],[23.653,45.481],[23.626,45.452],[23.584,45.447],[23.574,45.504],[23.411,45.603],[23.404,45.661],[23.375,45.695],[23.316,45.877],[23.226,46.0],[23.171,46.016],[23.074,46.105],[23.066,46.124],[23.095,46.139],[23.067,46.184],[22.967,46.219],[22.914,46.315],[22.813,46.311]]]},{"cod":"BR","p":[[[27.423,45.387],[27.483,45.457],[27.58,45.493],[27.703,45.477],[27.82,45.412],[28.03,45.395],[27.987,45.292],[28.041,45.258],[28.122,45.25],[28.131,45.238],[28.098,45.184],[28.178,45.135],[28.131,45.089],[28.144,45.043],[28.127,44.896],[28.055,44.777],[27.995,44.761],[27.911,44.775],[27.833,44.814],[27.686,44.787],[27.359,44.807],[27.299,44.794],[27.201,44.819],[27.203,44.873],[27.175,44.909],[27.246,44.948],[27.268,45.048],[27.21,45.062],[27.205,45.107],[27.164,45.132],[27.152,45.184],[27.126,45.186],[27.106,45.155],[27.085,45.155],[27.064,45.201],[27.167,45.238],[27.305,45.234],[27.31,45.286],[27.387,45.308],[27.423,45.387]]]},{"cod":"IL","p":[[[26.434,44.523],[26.368,44.565],[26.44,44.644],[26.36,44.685],[26.338,44.748],[26.27,44.76],[26.34,44.795],[26.411,44.783],[26.453,44.808],[26.535,44.81],[26.604,44.865],[26.678,44.832],[26.919,44.826],[26.986,44.803],[27.052,44.823],[27.115,44.8],[27.131,44.76],[27.199,44.777],[27.174,44.801],[27.201,44.819],[27.299,44.794],[27.359,44.807],[27.686,44.787],[27.833,44.814],[27.911,44.775],[27.877,44.744],[27.899,44.708],[27.978,44.679],[28.031,44.637],[28.022,44.552],[28.004,44.54],[28.086,44.505],[28.11,44.443],[28.048,44.398],[28.023,44.355],[27.78,44.418],[27.69,44.469],[27.466,44.506],[27.097,44.488],[26.977,44.518],[26.784,44.526],[26.707,44.563],[26.633,44.527],[26.53,44.555],[26.434,44.523]]]},{"cod":"B","p":[[[26.104,44.593],[26.113,44.525],[26.191,44.512],[26.167,44.461],[26.211,44.434],[26.196,44.403],[26.148,44.413],[26.172,44.343],[26.145,44.326],[26.097,44.371],[26.042,44.38],[25.976,44.431],[25.976,44.463],[26.042,44.467],[26.042,44.498],[25.989,44.515],[26.037,44.575],[26.104,44.593]]]}];
+function curveLine(cid){ const c=CURVES[cid]; return c.x.map((xv,i)=>({x:xv,y:c.y[i]})); }
+function setBadge(id,cid){ const c=CURVES[cid], el=document.getElementById(id);
+  el.textContent='R² = '+c.r2.toFixed(2)+' · '+c.form;
+  el.style.background='rgba(74,158,255,.16)'; el.style.color='#8ac0ff'; }
+
+const fmt = (n,d=0)=> n.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d});
+const rColor = r => r>0 ? 'var(--pos)' : 'var(--neg)';
+
+// KPI
+const best = [...DATA].sort((a,b)=>b.bac2026-a.bac2026)[0];
+const worst = [...DATA].sort((a,b)=>a.bac2026-b.bac2026)[0];
+document.getElementById('kpis').innerHTML = `
+  <div class="kpi"><div class="l">Media națională BAC</div><div class="v">74,8%</div></div>
+  <div class="kpi"><div class="l">Maxim</div><div class="v">${best.judet} <small>${fmt(best.bac2026,1)}%</small></div></div>
+  <div class="kpi"><div class="l">Minim</div><div class="v">${worst.judet} <small>${fmt(worst.bac2026,1)}%</small></div></div>
+  <div class="kpi"><div class="l">Amplitudine</div><div class="v">${fmt(best.bac2026-worst.bac2026,1)} <small>p.p.</small></div></div>`;
+
+Chart.defaults.color = '#93a1b0';
+Chart.defaults.font.family = "-apple-system,Segoe UI,Roboto,Arial,sans-serif";
+
+function scatter(canvas, key, xlabel, unit, dec, cid){
+  const pts = DATA.map(d=>({x:d[key], y:d.bac2026, j:d.judet}));
+  const line = curveLine(cid);
+  const big = new Set(['București','Cluj','Iași','Timiș','Ilfov','Giurgiu']);
+  new Chart(canvas.getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>big.has(p.j)?'#ffb454':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>big.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>{const p=c.raw; return ` ${p.j}: BAC ${fmt(p.y,1)}% · ${fmt(p.x,dec)}${unit}`;}
+      }}},
+      scales:{
+        x:{type:'linear',bounds:'data',
+           title:{display:true,text:xlabel,color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:92}
+      }
+    }
+  });
+}
+scatter(document.getElementById('c_rural'),'rural_pct','% populație rurală','%',0,'c_rural');
+scatter(document.getElementById('c_pib'),'pib_eur','PIB/locuitor (€)','€',0,'c_pib');
+scatter(document.getElementById('c_stud'),'studenti_pct','studenți (% din populație)','%',1,'c_stud');
+scatter(document.getElementById('c_teh'),'tehnologica_pct','% filiera tehnologică','%',0,'c_teh');
+scatter(document.getElementById('c_voc'),'vocationala_pct','% filiera vocațională','%',0,'c_voc');
+
+setBadge('b_rural','c_rural'); setBadge('b_pib','c_pib'); setBadge('b_stud','c_stud');
+setBadge('b_pib2','c_pib2'); setBadge('b_dist','c_dist'); setBadge('b_part','c_part');
+setBadge('b_teh','c_teh'); setBadge('b_voc','c_voc');
+scatter(document.getElementById('c_real'),'real_pct','% profil Real (STEM)','%',0,'c_real');
+scatter(document.getElementById('c_umanist'),'umanist_pct','% profil Umanist','%',0,'c_umanist');
+scatter(document.getElementById('c_resurse'),'resurse_pct','% profil Resurse naturale','%',0,'c_resurse');
+scatter(document.getElementById('c_tehnic'),'tehnic_pct','% profil Tehnic','%',0,'c_tehnic');
+scatter(document.getElementById('c_servicii'),'servicii_pct','% profil Servicii','%',0,'c_servicii');
+setBadge('b_real','c_real'); setBadge('b_umanist','c_umanist'); setBadge('b_resurse','c_resurse');
+setBadge('b_tehnic','c_tehnic'); setBadge('b_servicii','c_servicii');
+scatter(document.getElementById('c_somaj'),'somaj','rata șomajului (%)','%',1,'c_somaj');
+scatter(document.getElementById('c_salariu'),'salariu','salariu mediu net (lei)',' lei',0,'c_salariu');
+scatter(document.getElementById('c_studsup'),'studii_sup','% studii superioare','%',1,'c_studsup');
+scatter(document.getElementById('c_mobil'),'mobilitate','% mobilitate interjudețeană','%',1,'c_mobil');
+scatter(document.getElementById('c_sup3049'),'sup3049','% studii superioare 30-49 ani','%',1,'c_sup3049');
+scatter(document.getElementById('c_abandon'),'abandon','rata abandonului (%)','%',2,'c_abandon');
+setBadge('b_sup3049','c_sup3049'); setBadge('b_abandon','c_abandon');
+// --- harta interactiva: reziduuri sau rata de promovare ---
+(function(){
+  const svg=document.getElementById('c_map');
+  const info=document.getElementById('mapinfo');
+  const by={}; DATA.forEach(d=>by[d.cod]=d);
+  const ns='http://www.w3.org/2000/svg';
+
+  const rs=DATA.map(d=>d.resid), rlo=Math.min(...rs), rhi=Math.max(...rs);
+  const bs=DATA.map(d=>d.bac2026), blo=Math.min(...bs), bhi=Math.max(...bs);
+  const mix=(a,b,t)=>`rgb(${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)})`;
+
+  // divergent, centrat pe 0: rosu <- gri -> verde
+  function colResid(v){
+    const mid=[61,70,82];
+    return v>=0 ? mix(mid,[39,174,96],Math.min(1,v/rhi))
+                : mix(mid,[192,57,43],Math.min(1,v/rlo));
+  }
+  // secvential: rosu inchis -> galben -> verde
+  function colRate(v){
+    const t=(v-blo)/(bhi-blo);
+    return t<0.5 ? mix([160,45,45],[214,178,80],t*2)
+                 : mix([214,178,80],[39,150,96],(t-0.5)*2);
+  }
+
+  const MODES={
+    resid:{color:colResid,
+      cap:'Reziduul modelului WLS = observat − prezis. Verde = județul promovează PESTE profilul său structural; roșu = SUB.',
+      lo:fmt(rlo,1)+' pp', hi:'+'+fmt(rhi,1)+' pp',
+      grad:'linear-gradient(90deg,#c0392b,#e8776b,#3d4652,#7fd6a0,#279660)'},
+    rate:{color:colRate,
+      cap:'Rata brută de promovare la BAC 2026 (%), toate promoțiile, înainte de contestații.',
+      lo:fmt(blo,1)+'%', hi:fmt(bhi,1)+'%',
+      grad:'linear-gradient(90deg,#a02d2d,#d6b250,#279660)'}
+  };
+  let mode='resid';
+  const paths=[];
+
+  function panel(d){
+    const sign=d.resid>=0?'+':'';
+    const rc=d.resid>=0?'#7fe0a4':'#ff8a8a';
+    const big = mode==='resid'
+      ? `<div style="font-size:11px;color:#93a1b0">EROARE DE PREDICȚIE</div>
+         <div style="font-size:22px;font-weight:700;color:${rc}">${sign}${fmt(d.resid,1)} pp</div>
+         <div style="font-size:11px;color:#93a1b0">observat ${fmt(d.bac2026,1)}% · prezis ${fmt(d.pred,1)}%</div>`
+      : `<div style="font-size:11px;color:#93a1b0">RATA DE PROMOVARE 2026</div>
+         <div style="font-size:22px;font-weight:700;color:#ffd9a0">${fmt(d.bac2026,1)}%</div>
+         <div style="font-size:11px;color:#93a1b0">prezis ${fmt(d.pred,1)}% · eroare <span style="color:${rc}">${sign}${fmt(d.resid,1)} pp</span></div>`;
+    const row=(l,v)=>`<tr><td style="text-align:left;color:#93a1b0;border:none;padding:2px 0">${l}</td><td style="border:none;padding:2px 0">${v}</td></tr>`;
+    info.innerHTML=`
+      <div style="font-size:16px;font-weight:700;color:#e8edf2;margin-bottom:2px">${d.judet}</div>
+      <div style="color:#93a1b0;font-size:11.5px;margin-bottom:10px">${d.regiune}</div>
+      <div style="background:rgba(0,0,0,.25);border-radius:8px;padding:9px 10px;margin-bottom:10px">${big}</div>
+      <table style="width:100%;font-size:12px">
+        ${row('BAC 2024 / 2025', fmt(d.bac24,1)+' / '+fmt(d.bac25,1)+'%')}
+        ${row('Studenți', fmt(d.studenti_pct,1)+'%')}
+        ${row('Mobilitate', fmt(d.mobilitate,1)+'%')}
+        ${row('Rural', fmt(d.rural_pct,0)+'%')}
+        ${row('PIB/loc.', fmt(d.pib_eur,0)+' €')}
+        ${row('Șomaj', fmt(d.somaj,1)+'%')}
+        ${row('Participare', fmt(d.participare_pct,1)+'%')}
+        ${row('Candidați', fmt(d.candidati_bac,0))}
+      </table>`;
+  }
+
+  function paint(){
+    const M=MODES[mode];
+    paths.forEach(p=>p.setAttribute('fill', M.color(mode==='resid'?by[p.dataset.cod].resid:by[p.dataset.cod].bac2026)));
+    document.getElementById('mapcap').textContent=M.cap;
+    document.getElementById('lg_lo').textContent=M.lo;
+    document.getElementById('lg_hi').textContent=M.hi;
+    document.getElementById('lg_bar').style.background=M.grad;
+    document.getElementById('mb_resid').className='mbtn'+(mode==='resid'?' mbtn-on':'');
+    document.getElementById('mb_rate').className='mbtn'+(mode==='rate'?' mbtn-on':'');
+  }
+
+  GEO.forEach(f=>{
+    const d=by[f.cod]; if(!d) return;
+    f.p.forEach(ring=>{
+      const path=document.createElementNS(ns,'path');
+      path.setAttribute('d','M'+ring.map(([x,y])=>`${(x*0.695).toFixed(3)},${(92.5-y).toFixed(3)}`).join('L')+'Z');
+      path.setAttribute('stroke','#0f1419'); path.setAttribute('stroke-width','0.018');
+      path.style.cursor='pointer'; path.style.transition='opacity .12s';
+      path.dataset.cod=f.cod;
+      path.addEventListener('mouseenter',()=>{
+        paths.forEach(p=>p.style.opacity=p.dataset.cod===f.cod?'1':'0.42');
+        paths.filter(p=>p.dataset.cod===f.cod).forEach(p=>{
+          p.setAttribute('stroke','#e8edf2'); p.setAttribute('stroke-width','0.05');});
+        panel(d);
+      });
+      path.addEventListener('mouseleave',()=>{
+        paths.forEach(p=>{p.style.opacity='1'; p.setAttribute('stroke','#0f1419'); p.setAttribute('stroke-width','0.018');});
+      });
+      svg.appendChild(path); paths.push(path);
+    });
+  });
+
+  document.getElementById('mb_resid').onclick=()=>{mode='resid'; paint();};
+  document.getElementById('mb_rate').onclick=()=>{mode='rate'; paint();};
+  paint();
+})();
+
+// --- 3D scatter (Plotly) ---
+(function(){
+  const D=DATA.filter(d=>d.bac24!=null&&d.bac25!=null);
+  Plotly.newPlot('c_3d',[{
+    type:'scatter3d',mode:'markers',
+    x:D.map(d=>d.bac24),y:D.map(d=>d.bac25),z:D.map(d=>d.bac2026),
+    text:D.map(d=>d.judet),
+    hovertemplate:'<b>%{text}</b><br>2024: %{x:.1f}%<br>2025: %{y:.1f}%<br>2026: %{z:.1f}%<extra></extra>',
+    marker:{size:6,color:D.map(d=>d.mobilitate),colorscale:'Portland',showscale:true,
+      colorbar:{title:{text:'Mobilitate %',font:{size:11,color:'#93a1b0'}},
+        tickfont:{size:10,color:'#93a1b0'},thickness:12,len:.6},
+      line:{width:0.5,color:'rgba(0,0,0,.4)'}}
+  }],{
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    font:{color:'#93a1b0',size:11},margin:{l:0,r:0,t:0,b:0},
+    scene:{
+      xaxis:{title:'BAC 2024 (%)',gridcolor:'#2d3745',zerolinecolor:'#2d3745',backgroundcolor:'rgba(0,0,0,0)',showbackground:true},
+      yaxis:{title:'BAC 2025 (%)',gridcolor:'#2d3745',zerolinecolor:'#2d3745',backgroundcolor:'rgba(0,0,0,0)',showbackground:true},
+      zaxis:{title:'BAC 2026 (%)',gridcolor:'#2d3745',zerolinecolor:'#2d3745',backgroundcolor:'rgba(0,0,0,0)',showbackground:true},
+      camera:{eye:{x:1.6,y:1.5,z:1.1}}
+    }
+  },{displayModeBar:false,responsive:true});
+})();
+
+// --- diagnostic influenta ---
+(function(){
+  const T=INFL.thresh;
+  document.getElementById('th_lev').textContent=fmt(T.lev,3);
+  document.getElementById('th_cook').textContent=fmt(T.cook,3);
+  document.getElementById('th_dfb').textContent=fmt(T.dfb,3);
+  const hi=v=>`style="color:#ff8a8a;font-weight:700"`;
+  document.getElementById('inflbody').innerHTML=INFL.top.map(r=>`<tr>
+    <td style="text-align:left"><b>${r.j}</b></td><td>${fmt(r.mob,1)}</td><td>${fmt(r.bac,1)}</td>
+    <td ${r.h>T.lev?hi():''}>${fmt(r.h,3)}</td>
+    <td ${r.cook>T.cook?hi():''}>${fmt(r.cook,3)}</td>
+    <td ${Math.abs(r.dfb)>T.dfb?hi():''}>${r.dfb>=0?'+':''}${fmt(r.dfb,3)}</td>
+    <td ${Math.abs(r.t)>2?hi():''}>${r.t>=0?'+':''}${fmt(r.t,2)}</td></tr>`).join('');
+  document.getElementById('refitbody').innerHTML=INFL.refits.map((r,i)=>`<tr style="${i===0?'background:rgba(74,158,255,.08)':''}">
+    <td style="text-align:left">${r.tag}</td><td>${r.n}</td>
+    <td><b>${fmt(r.b,3)}</b></td><td>${fmt(r.beta,3)}</td>
+    <td style="color:#7fe0a4;font-weight:600">${r.p<0.001?'&lt;0,001':fmt(r.p,4)}</td></tr>`).join('');
+})();
+// --- spatial ---
+(function(){
+  const rows=[
+    {m:'OLS (nespațial)', I:SPAT.moran_ols.I, p:SPAT.moran_ols.p},
+    {m:'SAR (lag spațial)', I:SPAT.moran_sar.I, p:SPAT.moran_sar.p}];
+  document.getElementById('moranbody').innerHTML = rows.map(r=>{
+    const bad=r.p<0.05;
+    return `<tr><td style="text-align:left">${r.m}</td><td>${r.I>=0?'+':''}${fmt(r.I,3)}</td>
+      <td>${fmt(r.p,3)}</td>
+      <td style="color:${bad?'#ff8a8a':'#7fe0a4'};font-weight:600">${bad?'autocorelat':'curat'}</td></tr>`;}).join('');
+  const st=v=>v<0.001?'***':v<0.01?'**':v<0.05?'*':'ns';
+  document.getElementById('sarbody').innerHTML = SPAT.coef.filter(c=>c.t!=='const').map(c=>`<tr>
+    <td style="text-align:left">${c.t}</td>
+    <td>${c.b_ols>=0?'+':''}${fmt(c.b_ols,3)}</td>
+    <td style="color:${c.p_ols<0.05?'#7fe0a4':'#93a1b0'}">${fmt(c.p_ols,3)} ${st(c.p_ols)}</td>
+    <td><b>${c.b_sar>=0?'+':''}${fmt(c.b_sar,3)}</b></td>
+    <td style="color:${c.p_sar<0.05?'#7fe0a4':'#93a1b0'};font-weight:600">${fmt(c.p_sar,3)} ${st(c.p_sar)}</td></tr>`).join('');
+})();
+// --- replicare multi-an ---
+(function(){
+  const LBL={rural_pct:'rural',ln_PIB:'ln(PIB)',ln_stud:'ln(studenți)',mobilitate:'mobilitate',somaj:'șomaj'};
+  const keys=['ln_stud','mobilitate','rural_pct','somaj','ln_PIB'];
+  const years=['2024','2025','2026'];
+  const cols={'2024':'#4a9eff','2025':'#ffb454','2026':'#5fd08a'};
+  new Chart(document.getElementById('c_repl').getContext('2d'),{
+    type:'bar',
+    data:{labels:keys.map(k=>LBL[k]),
+      datasets:years.map(y=>({label:y,data:keys.map(k=>REPL.betas[y][k][0]),
+        backgroundColor:cols[y],borderColor:cols[y],borderWidth:1}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>{
+          const k=keys[c.dataIndex], v=REPL.betas[c.dataset.label][k];
+          const st=v[1]<0.001?'***':v[1]<0.01?'**':v[1]<0.05?'*':' (ns)';
+          return ` ${c.dataset.label}: β = ${v[0]>=0?'+':''}${fmt(v[0],3)}${st} · p = ${fmt(v[1],3)}`;}}}},
+      scales:{
+        x:{grid:{color:'rgba(45,55,69,.6)'},title:{display:true,text:'β standardizat',color:'#93a1b0'}},
+        y:{grid:{display:false},ticks:{font:{size:11}}}
+      },indexAxis:'y'}
+  });
+  document.getElementById('replbody').innerHTML = REPL.fit.map(f=>`<tr>
+    <td style="text-align:left"><b>${f.an}</b></td><td>${fmt(f.media,1)}%</td>
+    <td>${fmt(f.r2,3)}</td><td>${fmt(f.r2adj,3)}</td>
+    <td style="color:#8ac0ff;font-weight:600">${fmt(f.loo,3)}</td></tr>`).join('');
+})();
+// tabel comparatie modele
+document.getElementById('cmpbody').innerHTML = MODEL_CMP.map((m,i)=>`<tr style="${i===0?'background:rgba(95,208,138,.08)':''}"><td style="text-align:left">${i===0?'<b>'+m.tag+'</b> ◄':m.tag}</td><td>${m.k}</td><td>${fmt(m.r2,3)}</td><td>${fmt(m.r2adj,3)}</td><td style="color:${i===0?'#7fe0a4':'#ff8a8a'};font-weight:600">${fmt(m.loo,3)}</td></tr>`).join('');
+setBadge('b_somaj','c_somaj'); setBadge('b_salariu','c_salariu');
+setBadge('b_studsup','c_studsup'); setBadge('b_mobil','c_mobil');
+
+// ---- Al 4-lea grafic: PIB x BAC, FARA Bucuresti si Ilfov (n=40) ----
+function pear(pts){
+  const n=pts.length, mx=pts.reduce((s,p)=>s+p.x,0)/n, my=pts.reduce((s,p)=>s+p.y,0)/n;
+  let num=0,dx=0,dy=0;
+  pts.forEach(p=>{const a=p.x-mx,b=p.y-my; num+=a*b; dx+=a*a; dy+=b*b;});
+  return num/Math.sqrt(dx*dy);
+}
+function lin(pts){
+  const n=pts.length, mx=pts.reduce((s,p)=>s+p.x,0)/n, my=pts.reduce((s,p)=>s+p.y,0)/n;
+  let num=0,den=0;
+  pts.forEach(p=>{num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2;});
+  const b=num/den; return [b, my-b*mx];
+}
+(function(){
+  const sub = DATA.filter(d=>d.cod!=='B' && d.cod!=='IF');
+  const pts = sub.map(d=>({x:d.pib_eur, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_pib2');
+  const hi = new Set(['Cluj','Timiș','Iași','Sibiu']);
+  new Chart(document.getElementById('c_pib2').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>hi.has(p.j)?'#ffb454':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>hi.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · ${fmt(c.raw.x,0)} €`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'PIB/locuitor 2023 (€)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:58,max:88}
+      }
+    }
+  });
+  const el=document.getElementById('b_pib2');
+})();
+
+// ---- Al 5-lea grafic: DISTANTA de Bucuresti x BAC (fara Bucuresti, n=41) ----
+(function(){
+  const sub = DATA.filter(d=>d.cod!=='B' && d.dist_buc_km!=null);
+  const pts = sub.map(d=>({x:d.dist_buc_km, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_dist');
+  const near = new Set(['Ilfov','Giurgiu','Călărași','Teleorman','Ialomița']); // inelul sudic
+  new Chart(document.getElementById('c_dist').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>near.has(p.j)?'#ff6b6b':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>near.has(p.j)?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · ${fmt(c.raw.x,0)} km`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'Distanță până la București (km)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:90}
+      }
+    }
+  });
+  const el=document.getElementById('b_dist');
+})();
+
+// ---- Al 6-lea grafic: PARTICIPARE la BAC x promovare (n=42) ----
+(function(){
+  const pts = DATA.map(d=>({x:d.participare_pct, y:d.bac2026, j:d.judet}));
+  const line = curveLine('c_part');
+  new Chart(document.getElementById('c_part').getContext('2d'),{
+    data:{datasets:[
+      {type:'line',data:line,borderColor:'rgba(255,180,84,.9)',borderWidth:2,
+        borderDash:[6,4],pointRadius:0,fill:false,tension:0},
+      {type:'scatter',data:pts,
+        pointBackgroundColor:pts.map(p=>p.x>100?'#ff6b6b':'#4a9eff'),
+        pointBorderColor:'rgba(0,0,0,.35)',pointBorderWidth:1,
+        pointRadius:pts.map(p=>p.x>100?6:4.5),pointHoverRadius:8}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.raw.j}: BAC ${fmt(c.raw.y,1)}% · particip. ${fmt(c.raw.x,1)}%`}}},
+      scales:{
+        x:{type:'linear',bounds:'data',title:{display:true,text:'Participare la BAC (% din elevii clasei a XII-a)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>fmt(v,0)+'%'}},
+        y:{title:{display:true,text:'Rata promovare BAC 2026 (%)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},min:52,max:90}
+      }
+    }
+  });
+  const el=document.getElementById('b_part');
+})();
+
+// ---- Grafic eroare de predictie per judet (rezidual WLS) ----
+(function(){
+  const rows=[...DATA].sort((a,b)=>b.resid-a.resid);
+  const vals=rows.map(d=>d.resid);
+  new Chart(document.getElementById('c_resid').getContext('2d'),{
+    type:'bar',
+    data:{labels:rows.map(d=>d.judet),datasets:[{data:vals,
+      backgroundColor:vals.map(v=>v>=0?'rgba(95,208,138,.75)':'rgba(255,107,107,.75)'),
+      borderColor:vals.map(v=>v>=0?'#5fd08a':'#ff6b6b'),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>{const d=rows[c.dataIndex];
+          return ` obs ${fmt(d.bac2026,1)}% · prezis ${fmt(d.pred,1)}% · Δ ${d.resid>=0?'+':''}${fmt(d.resid,1)} pp`;}
+      }}},
+      scales:{
+        x:{title:{display:true,text:'Eroare de predicție (puncte procentuale)',color:'#93a1b0'},
+           grid:{color:'rgba(45,55,69,.6)'},ticks:{callback:v=>(v>0?'+':'')+v}},
+        y:{grid:{display:false},ticks:{font:{size:11},autoSkip:false}}
+      }
+    }
+  });
+})();
+
+// tabel sortabil
+let sortK='bac2026', asc=false;
+const tb=document.querySelector('#tbl tbody');
+const maxRural=Math.max(...DATA.map(d=>d.rural_pct));
+function render(){
+  const rows=[...DATA].sort((a,b)=>{
+    let x=a[sortK],y=b[sortK];
+    if(typeof x==='string') return asc?x.localeCompare(y,'ro'):y.localeCompare(x,'ro');
+    return asc?x-y:y-x;
+  });
+  tb.innerHTML=rows.map(d=>`<tr>
+    <td>${d.judet}</td><td style="text-align:left;color:var(--muted)">${d.regiune}</td>
+    <td><b>${fmt(d.bac2026,1)}</b></td>
+    <td>${fmt(d.rural_pct,0)} <span class="bar" style="width:${d.rural_pct/maxRural*46}px"></span></td>
+    <td>${fmt(d.pib_eur,0)}</td>
+    <td>${fmt(d.studenti_pct,1)}</td>
+    <td>${d.dist_buc_km==null?'—':fmt(d.dist_buc_km,0)}</td>
+    <td>${fmt(d.participare_pct,1)}</td>
+    <td>${fmt(d.tehnologica_pct,1)}</td>
+    <td>${fmt(d.vocationala_pct,1)}</td>
+    <td>${fmt(d.real_pct,1)}</td>
+    <td>${fmt(d.umanist_pct,1)}</td>
+    <td>${fmt(d.tehnic_pct,1)}</td>
+    <td>${fmt(d.servicii_pct,1)}</td>
+    <td>${fmt(d.resurse_pct,1)}</td>
+    <td>${fmt(d.somaj,1)}</td>
+    <td>${fmt(d.salariu,0)}</td>
+    <td>${fmt(d.studii_sup,1)}</td>
+    <td>${fmt(d.mobilitate,1)}</td>
+    <td>${fmt(d.sup3049,1)}</td>
+    <td>${fmt(d.abandon,2)}</td>
+    <td>${fmt(d.bac24,1)}</td>
+    <td>${fmt(d.bac25,1)}</td>
+    <td>${fmt(d.bac_teo,1)}</td>
+    <td>${fmt(d.bac_teh,1)}</td>
+    <td style="color:var(--muted)">${fmt(d.pop_mii,0)}</td>
+  </tr>`).join('');
+}
+document.querySelectorAll('#tbl th').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k; if(k===sortK) asc=!asc; else {sortK=k; asc=(k==='judet'||k==='regiune');}
+  render();
+});
+render();
+</script>
+</body>
+</html>
