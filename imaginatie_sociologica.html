@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Test interactiv despre rezultate contraintuitive în societate pentru studenți din anul I la științe sociale.">
+  <meta name="theme-color" content="#14213d">
+  <title>Test de imaginație sociologică</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314213d'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%236ce5e8'/%3E%3Ccircle cx='43' cy='20' r='5' fill='%23fca311'/%3E%3Ccircle cx='34' cy='43' r='8' fill='%23fff'/%3E%3Cpath d='M26 25l5 11m8-12l-3 11M27 21h11' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #14213d;
+      --ink-soft: #44506a;
+      --paper: #f7f9fc;
+      --surface: #ffffff;
+      --line: #dbe2ec;
+      --cyan: #15b9c2;
+      --cyan-soft: #e4f8f9;
+      --orange: #fca311;
+      --orange-soft: #fff3d9;
+      --success: #13795b;
+      --success-soft: #e6f6f0;
+      --error: #b42318;
+      --error-soft: #fff0ee;
+      --shadow: 0 18px 45px rgba(20, 33, 61, 0.10);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-height: 100vh; background: var(--paper); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(247, 249, 252, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-inner {
+      width: min(1120px, calc(100% - 32px));
+      min-height: 68px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 780; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: white;
+      border-radius: 11px;
+      background: var(--ink);
+      font-size: 0.95rem;
+      letter-spacing: -0.03em;
+    }
+
+    .progress-area { min-width: min(340px, 45vw); }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      color: var(--ink-soft);
+      font-size: 0.85rem;
+      font-weight: 650;
+    }
+    .progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: #e5eaf1; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: var(--cyan); transition: width 220ms ease; }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 50px 0 80px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+      gap: 38px;
+      align-items: end;
+      margin-bottom: 38px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #087d84;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.45rem, 5vw, 4.8rem);
+      line-height: 0.98;
+      letter-spacing: -0.048em;
+    }
+
+    .lede {
+      max-width: 700px;
+      margin: 22px 0 0;
+      color: var(--ink-soft);
+      font-size: 1.08rem;
+      line-height: 1.65;
+    }
+
+    .intro-note {
+      margin: 0;
+      padding: 22px 0 3px 22px;
+      border-left: 4px solid var(--orange);
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.55;
+    }
+    .intro-note strong { display: block; margin-bottom: 5px; color: var(--ink); }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 30px; align-items: start; }
+    .quiz { display: grid; gap: 18px; }
+
+    fieldset {
+      min-width: 0;
+      margin: 0;
+      padding: 27px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(20, 33, 61, 0.045);
+      scroll-margin-top: 94px;
+    }
+    fieldset:focus-within { border-color: #79cfd4; box-shadow: 0 0 0 4px rgba(21, 185, 194, 0.11); }
+    fieldset.unanswered { border-color: #ef8f87; box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.09); }
+
+    legend { width: 100%; padding: 0; }
+    .question-head { display: flex; gap: 15px; align-items: flex-start; }
+    .number {
+      flex: 0 0 39px;
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+    }
+    .category { display: block; margin: 1px 0 5px; color: #087d84; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .question-text { display: block; max-width: 760px; font-size: 1.08rem; font-weight: 720; line-height: 1.45; }
+
+    .options { display: grid; gap: 10px; margin-top: 20px; }
+    .option {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfcfe;
+      color: #24314d;
+      line-height: 1.45;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+    .option:hover { border-color: #91cdd1; transform: translateY(-1px); }
+    .option:has(input:checked) { border-color: var(--cyan); background: var(--cyan-soft); }
+    .option input { width: 19px; height: 19px; margin: 1px 0 0; accent-color: var(--cyan); flex: 0 0 auto; }
+
+    .side {
+      position: sticky;
+      top: 96px;
+      padding: 22px;
+      border-radius: 18px;
+      background: var(--ink);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    .side h2 { margin: 0 0 10px; font-size: 1.1rem; }
+    .side p { margin: 0 0 18px; color: #c9d2e3; font-size: 0.92rem; line-height: 1.5; }
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .mini-stat { padding: 12px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; background: rgba(255,255,255,.06); }
+    .mini-stat b { display: block; color: var(--orange); font-size: 1.35rem; }
+    .mini-stat span { display: block; margin-top: 2px; color: #c9d2e3; font-size: 0.75rem; }
+
+    .primary, .secondary {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 12px;
+      padding: 12px 16px;
+      border: 0;
+      font-weight: 780;
+    }
+    .primary { background: var(--orange); color: #211500; }
+    .primary:hover { background: #ffb32f; }
+    .primary:focus-visible, .secondary:focus-visible, .option:focus-within { outline: 3px solid rgba(108, 229, 232, .55); outline-offset: 2px; }
+    .secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .secondary:hover { background: #f2f5f9; }
+
+    .status { min-height: 22px; margin: 12px 0 0; color: #ffd9d4; font-size: 0.85rem; }
+
+    .results[hidden] { display: none; }
+    .results { margin-top: 42px; scroll-margin-top: 92px; }
+    .result-hero {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 28px;
+      align-items: center;
+      padding: 30px;
+      border-radius: 22px;
+      background: var(--ink);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    .score-ring {
+      width: 148px;
+      height: 148px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--orange) var(--score-angle, 0deg), rgba(255,255,255,.13) 0);
+      position: relative;
+    }
+    .score-ring::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--ink); }
+    .score-value { z-index: 1; text-align: center; font-size: 2.15rem; font-weight: 850; line-height: 1; }
+    .score-value small { display: block; margin-top: 5px; color: #b9c7da; font-size: 0.78rem; font-weight: 650; }
+    .result-kicker { margin: 0 0 7px; color: var(--orange); font-size: 0.8rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .result-hero h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.06; }
+    .result-hero p:last-child { max-width: 690px; margin: 12px 0 0; color: #d5ddeb; line-height: 1.6; }
+
+    .review-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 34px 0 16px; }
+    .review-head h2 { margin: 0; font-size: 1.65rem; }
+    .review-head p { margin: 5px 0 0; color: var(--ink-soft); }
+    .review { display: grid; gap: 12px; }
+    .explanation { padding: 20px; border: 1px solid var(--line); border-left-width: 5px; border-radius: 14px; background: white; }
+    .explanation.correct { border-left-color: var(--success); }
+    .explanation.wrong { border-left-color: var(--error); }
+    .explanation h3 { margin: 0 0 8px; font-size: 1.02rem; }
+    .explanation p { margin: 6px 0 0; color: var(--ink-soft); line-height: 1.58; }
+    .answer-line { font-weight: 720; color: var(--ink) !important; }
+    .source { font-size: .86rem; }
+    .source a { color: #087d84; text-underline-offset: 3px; }
+
+    .result-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 22px; }
+    .result-actions .secondary { width: auto; min-width: 180px; }
+
+    noscript { display: block; padding: 18px; background: var(--error-soft); color: var(--error); }
+
+    @media (max-width: 860px) {
+      .intro, .layout { grid-template-columns: 1fr; }
+      .intro { gap: 20px; }
+      .intro-note { max-width: 680px; }
+      .side { position: static; order: -1; display: grid; grid-template-columns: 1fr auto; gap: 14px 20px; align-items: center; }
+      .side h2, .side p { grid-column: 1; }
+      .side p { margin-bottom: 0; }
+      .mini-stats { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+      .side .primary, .side .status { grid-column: 1 / -1; }
+      .result-hero { grid-template-columns: 140px 1fr; }
+      .score-ring { width: 124px; height: 124px; }
+    }
+
+    @media (max-width: 620px) {
+      .topbar-inner { min-height: 78px; align-items: center; }
+      .brand span:last-child { display: none; }
+      .progress-area { min-width: 0; flex: 1; }
+      .shell { width: min(100% - 22px, 1120px); padding-top: 34px; }
+      h1 { font-size: clamp(2.3rem, 13vw, 3.55rem); }
+      .lede { font-size: 1rem; }
+      fieldset { padding: 20px 16px; border-radius: 15px; }
+      .question-head { gap: 11px; }
+      .number { flex-basis: 34px; width: 34px; height: 34px; border-radius: 10px; }
+      .question-text { font-size: 1rem; }
+      .option { padding: 13px 12px; }
+      .side { display: block; }
+      .mini-stats { margin-bottom: 18px; }
+      .result-hero { grid-template-columns: 1fr; text-align: center; justify-items: center; padding: 26px 20px; }
+      .review-head { align-items: flex-start; flex-direction: column; }
+      .result-actions { justify-content: stretch; }
+      .result-actions .secondary { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <noscript>Acest test are nevoie de JavaScript pentru calcularea scorului și afișarea rezultatului.</noscript>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark">IS</span><span>Imaginație sociologică</span></div>
+      <div class="progress-area" aria-live="polite">
+        <div class="progress-label"><span>Progres</span><span id="progressText">0 din 12</span></div>
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">Metodologia cercetării sociale</p>
+        <h1 id="pageTitle">Cât de bine îți contrazici intuiția?</h1>
+        <p class="lede">Răspunde la 12 întrebări despre situații întâlnite în societate. Nu ai nevoie de cunoștințe anterioare de sociologie sau statistică. Citește fiecare situație, alege varianta care ți se pare cea mai probabilă, iar la final vei primi scorul și explicațiile.</p>
+      </div>
+      <p class="intro-note"><strong>Aproximativ 15 minute</strong>Alege o singură variantă la fiecare întrebare. Nu te grăbi: scopul este să compari ceea ce pare logic la prima vedere cu ceea ce au descoperit cercetătorii. Răspunsurile nu sunt trimise nicăieri.</p>
+    </section>
+
+    <div class="layout">
+      <form class="quiz" id="quizForm" novalidate></form>
+
+      <aside class="side" aria-labelledby="summaryTitle">
+        <div>
+          <h2 id="summaryTitle">Rezumat</h2>
+          <p>Poți reveni la orice întrebare înainte să trimiți testul.</p>
+        </div>
+        <div class="mini-stats" aria-hidden="true">
+          <div class="mini-stat"><b id="answeredCount">0</b><span>completate</span></div>
+          <div class="mini-stat"><b id="remainingCount">12</b><span>rămase</span></div>
+        </div>
+        <button class="primary" type="submit" form="quizForm">Calculează scorul</button>
+        <p class="status" id="formStatus" role="alert"></p>
+      </aside>
+    </div>
+
+    <section class="results" id="results" hidden aria-labelledby="diagnosticTitle">
+      <div class="result-hero">
+        <div class="score-ring" id="scoreRing" aria-hidden="true">
+          <div class="score-value"><span id="scoreValue">0</span>/12<small>răspunsuri corecte</small></div>
+        </div>
+        <div>
+          <p class="result-kicker">Diagnosticul tău</p>
+          <h2 id="diagnosticTitle"></h2>
+          <p id="diagnosticText"></p>
+        </div>
+      </div>
+
+      <div class="review-head">
+        <div>
+          <h2>Explicațiile răspunsurilor</h2>
+          <p>Compară intuiția inițială cu rezultatul cercetării și limitele lui.</p>
+        </div>
+      </div>
+      <div class="review" id="review"></div>
+      <div class="result-actions"><button class="secondary" type="button" id="restartButton">Reia testul</button></div>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      {
+        category: "Criminalitate și percepție",
+        question: "În Statele Unite, o anchetă națională întreabă în fiecare an un număr mare de persoane dacă au fost victimele unei agresiuni. Sunt incluse atât faptele anunțate poliției, cât și cele care nu au fost raportate. Dacă punem alături rezultatele obținute în 1993 și în 2023, ce diferență observăm?",
+        options: ["În 2023, proporția victimelor a fost mai mare decât în 1993", "În cei doi ani, proporția victimelor a fost aproximativ aceeași", "În 2023, proporția victimelor a fost mult mai mică decât în 1993", "Cele două perioade nu pot fi comparate printr-un asemenea sondaj"],
+        answer: 2,
+        explanation: "Rata anuală a scăzut de la aproximativ 43,4 la 1.000 de persoane în 1993 la 13,6 la 1.000 în 2023, o reducere de circa 69%. Evenimentele recente și cazurile intens mediatizate pot domina memoria, de aceea o serie temporală măsurată sistematic este mai informativă decât exemplele cele mai vizibile.",
+        source: "Bureau of Justice Statistics, Criminal Victimization 2023",
+        url: "https://bjs.ojp.gov/document/cv23.pdf"
+      },
+      {
+        category: "Imigrație și criminalitate",
+        question: "Ce concluzie descrie cel mai bine rezultatul mediu al studiilor americane care compară zone și perioade diferite în ceea ce privește relația dintre imigrație și criminalitate?",
+        options: ["O legătură clară: zonele cu mai mulți imigranți au avut mai multă criminalitate", "O legătură foarte slabă: în medie, zonele cu mai mulți imigranți au avut puțin mai puțină criminalitate", "Nicio legătură, în niciunul dintre studiile analizate", "Rezultate atât de diferite încât nu s-a putut formula nicio concluzie generală"],
+        answer: 1,
+        explanation: "Sinteza studiilor la nivel de zone geografice a găsit o asociere medie foarte slabă și negativă, cu variații între contexte și metode. Aceasta nu este o lege universală și nici o dovadă cauzală suficientă: definiția criminalității, unitatea geografică și perioada analizată contează.",
+        source: "Ousey și Kubrin, Annual Review of Criminology, 2018",
+        url: "https://doi.org/10.1146/annurev-criminol-032317-092026"
+      },
+      {
+        category: "Politici sociale",
+        question: "În programele analizate în mai multe țări, când gospodăriile sărace au primit transferuri bănești (ajutor financiar în bani), cheltuielile pentru alcool și tutun au fost, după primirea banilor, în medie:",
+        options: ["Cheltuielile pe alcool și țigări au crescut, în medie", "Cheltuielile au rămas neschimbate în toate cele 19 studii", "Cheltuielile pe alcool și țigări au scăzut, în medie", "În unele regiuni au crescut, iar în altele au scăzut la fel de mult"],
+        answer: 2,
+        explanation: "O meta-analiză a 19 studii a estimat un efect mediu negativ asupra acestor cheltuieli. Judecățile despre comportamentul persoanelor sărace pot reflecta stereotipuri; evaluarea comparativă verifică ce se întâmplă după intervenție, nu ce ni se pare plauzibil.",
+        source: "Evans și Popova, Cash Transfers and Temptation Goods, 2017",
+        url: "https://doi.org/10.1086/689575"
+      },
+      {
+        category: "Prevenirea delincvenței",
+        question: "În programele numite Scared Straight, adolescenți care au probleme cu legea vizitează o închisoare și discută cu deținuți despre viața din penitenciar. Cercetătorii i-au urmărit apoi pe participanți și i-au comparat cu adolescenți asemănători care nu au trecut prin program. Ce diferență au observat între cele două grupuri?",
+        options: ["Participanții au comis mai puține infracțiuni după program", "Programul nu a avut niciun efect în niciun studiu", "Participanții au comis mai multe infracțiuni după program", "Programul a avut efecte bune numai asupra adolescenților mai tineri"],
+        answer: 2,
+        explanation: "Revizuirea experimentelor a concluzionat că programele au fost mai dăunătoare decât lipsa intervenției. O intervenție cu intenții bune poate avea efecte adverse, iar un grup de comparație este necesar pentru a estima ce s-ar fi întâmplat fără program.",
+        source: "Petrosino și colaboratorii, Campbell Systematic Reviews, 2013",
+        url: "https://doi.org/10.4073/csr.2013.5"
+      },
+      {
+        category: "Rețele și locuri de muncă",
+        question: "În experimente pe LinkedIn, ce tip de legături (relații sociale) a crescut cel mai mult găsirea unui loc de muncă mai bun, în medie, mai ales în sectoarele digitale?",
+        options: ["Relațiile cu prietenii foarte apropiați, cu care persoana comunica des", "Relațiile mai puțin apropiate, cu persoane cunoscute cu care comunica rar", "Legăturile noi cu persoane complet necunoscute înainte de experiment", "Toate tipurile de relații au avut, în medie, același efect"],
+        answer: 1,
+        explanation: "Experimentele au indicat o relație neliniară: legăturile mai slabe au favorizat transmiterea oportunităților, dar avantajul a scăzut dincolo de un punct și a variat între industrii. Randomizarea recomandărilor a separat mai bine efectul legăturii de sociabilitate sau ambiție.",
+        source: "Rajkumar și colaboratorii, Science, 2022",
+        url: "https://doi.org/10.1126/science.abl4476"
+      },
+      {
+        category: "Paradoxul prieteniei",
+        question: "Imaginează-ți o rețea formată dintr-un grup mare de oameni, în care fiecare legătură reprezintă o relație de prietenie. Unii membri au puțini prieteni, iar alții au mulți. Pentru fiecare membru comparăm numărul său de prieteni cu numărul mediu de prieteni ai prietenilor săi. Ce regularitate apare de obicei?",
+        options: ["Prietenii unei persoane au, în medie, mai puțini prieteni decât ea", "O persoană și prietenii ei au, în medie, exact același număr de prieteni", "Prietenii unei persoane au, în medie, mai mulți prieteni decât ea", "Numărul legăturilor nu produce nicio regularitate care poate fi calculată"],
+        answer: 2,
+        explanation: "Persoanele foarte conectate apar în listele de prieteni ale multor oameni și sunt supra-reprezentate în experiența socială a fiecăruia. Perspectiva individuală nu este un eșantion aleatoriu din populație; structura rețelei produce o distorsiune previzibilă.",
+        source: "Feld, American Journal of Sociology, 1991",
+        url: "https://doi.org/10.1086/229693"
+      },
+      {
+        category: "Creativitate în grup",
+        question: "Patru colegi trebuie să găsească cât mai multe soluții pentru o problemă. Ei pot discuta împreună de la început, spunând ideile pe rând, sau pot lucra fiecare câteva minute în liniște și apoi pot reuni toate propunerile. În experimentele despre creativitatea grupurilor, care variantă produce de obicei mai multe idei diferite și mai multe idei bune?",
+        options: ["Discuția în grup, față în față, începută imediat", "Munca separată la început, urmată de reunirea ideilor", "Alegerea unui lider care să vorbească primul și cel mai mult", "Cele două variante produc întotdeauna rezultate identice"],
+        answer: 1,
+        explanation: "Grupurile nominale, în care membrii lucrează separat și apoi reunesc ideile, depășesc de regulă grupurile interactive. Interacțiunea poate bloca producția: oamenii așteaptă să vorbească, se autocenzurează sau reduc efortul. Satisfacția față de proces nu dovedește productivitatea lui.",
+        source: "Mullen, Johnson și Salas, 1991",
+        url: "https://doi.org/10.1207/s15324834basp1201_1"
+      },
+      {
+        category: "Intervenția martorilor",
+        question: "O persoană pare să aibă nevoie de ajutor într-un loc public, dar situația nu este foarte clară și nu pare imediat periculoasă. Mai mulți oameni observă întâmplarea. Fiecare poate crede că altcineva va interveni sau poate privi reacția celorlalți pentru a decide dacă este într-adevăr o urgență. În asemenea situații, ce se întâmplă de obicei cu șansa ca un anumit martor să ajute?",
+        options: ["Crește atunci când sunt mai mulți martori", "Scade atunci când sunt mai mulți martori", "Devine întotdeauna zero dacă sunt cel puțin doi martori", "Rămâne identică, indiferent de numărul martorilor"],
+        answer: 1,
+        explanation: "O meta-analiză a găsit un efect general al martorului, dar efectul a fost mai slab în urgențe periculoase, iar în unele situații ceilalți au oferit sprijin. Concluzia trebuie formulată probabilistic și împreună cu situațiile care o modifică.",
+        source: "Fischer și colaboratorii, Psychological Bulletin, 2011",
+        url: "https://doi.org/10.1037/a0023304"
+      },
+      {
+        category: "Polarizare politică",
+        question: "Se afirmă adesea că oamenii ar deveni mai moderați dacă ar vedea mai multe argumente politice ale taberei opuse. Într-un experiment, utilizatori americani ai Twitter au urmărit timp de o lună mesaje selectate din tabăra politică adversă. Cum s-au schimbat opiniile participanților după această expunere?",
+        options: ["Atât republicanii, cât și democrații au devenit automat mai moderați", "Opiniile nu s-au putut schimba în nicio direcție", "Republicanii au devenit mai conservatori; la democrați, schimbarea observată a fost prea mică pentru o concluzie sigură", "Participanții au renunțat la orice identificare politică"],
+        answer: 2,
+        explanation: "Republicanii expuși unui flux liberal au devenit semnificativ mai conservatori. Democrații au devenit ușor mai liberali, dar efectul nu a fost semnificativ. Expunerea la informație nu garantează persuasiunea, iar rezultatul nu trebuie generalizat la toate platformele sau populațiile.",
+        source: "Bail și colaboratorii, PNAS, 2018",
+        url: "https://doi.org/10.1073/pnas.1804840115"
+      },
+      {
+        category: "Contact între grupuri",
+        question: "Ce arată, în medie, cercetările privind efectul contactului dintre membrii unor grupuri diferite asupra percepțiilor dintre aceste grupuri?",
+        options: ["Întâlnirea dintre grupuri mărește de regulă prejudecățile", "Întâlnirea reduce de regulă prejudecățile, mai ales când oamenii cooperează și sunt tratați ca egali", "Efectul contactului dintre grupuri nu poate fi cercetat", "O singură întâlnire elimină complet și definitiv orice prejudecată"],
+        answer: 1,
+        explanation: "Meta-analiza a 515 studii a arătat că contactul reduce de obicei prejudecățile, iar condiții precum cooperarea și statutul relativ egal întăresc efectul. Față de itemul precedent, tipul contactului, mediul și identitatea grupurilor sunt diferite.",
+        source: "Pettigrew și Tropp, Journal of Personality and Social Psychology, 2006",
+        url: "https://doi.org/10.1037/0022-3514.90.5.751"
+      },
+      {
+        category: "Eșantionare",
+        question: "În 1936, înaintea alegerilor prezidențiale, revista Literary Digest a publicat un sondaj, a primit circa 2,4 milioane de răspunsuri și a prezis greșit câștigătorul alegerilor din SUA. Lecția principală este:",
+        options: ["Orice sondaj cu peste un milion de răspunsuri reprezintă corect populația", "Un număr mare de răspunsuri elimină automat problemele de selecție", "Contează mai mult cum sunt aleși respondenții și cine refuză să răspundă decât numărul lor brut", "Niciun sondaj nu poate oferi informații despre o populație"],
+        answer: 2,
+        explanation: "Sondajul a fost afectat de selecția inițială și de nonrăspuns. Un număr foarte mare de observații nu repară o procedură care reprezintă sistematic mai bine unele categorii decât altele. Precizia nu este același lucru cu validitatea.",
+        source: "Squire, Public Opinion Quarterly, 1988",
+        url: "https://doi.org/10.1086/269085"
+      },
+      {
+        category: "Paradoxul Simpson",
+        question: "La admiterea la Berkeley din 1973, rata totală de admitere a fost mai mare pentru bărbați. Analiza pe departamente nu a confirmat însă același tipar. Este posibil așa ceva?",
+        options: ["Cifrele totale prezentate inițial fuseseră inventate", "Femeile și bărbații au candidat în proporții diferite la departamente mai ușor sau mai greu de accesat", "Universitatea nu înregistrase sexul persoanelor care au candidat", "Orice analiză făcută separat pe departamente este greșită"],
+        answer: 1,
+        explanation: "Candidații și candidatele s-au distribuit diferit între departamente cu rate de admitere foarte diferite. Relațiile observate la nivel agregat se pot modifica sau inversa după controlul unei a treia variabile; nivelul de analiză trebuie ales înainte de interpretare.",
+        source: "Bickel, Hammel și O’Connell, Science, 1975",
+        url: "https://doi.org/10.1126/science.187.4175.398"
+      }
+    ];
+
+    const form = document.getElementById("quizForm");
+    const results = document.getElementById("results");
+    const review = document.getElementById("review");
+    const status = document.getElementById("formStatus");
+    const progressText = document.getElementById("progressText");
+    const progressFill = document.getElementById("progressFill");
+    const answeredCount = document.getElementById("answeredCount");
+    const remainingCount = document.getElementById("remainingCount");
+
+    function renderQuestions() {
+      form.innerHTML = questions.map((item, index) => `
+        <fieldset id="question-${index + 1}" data-question="${index}">
+          <legend>
+            <span class="question-head">
+              <span class="number">${index + 1}</span>
+              <span><span class="category">${item.category}</span><span class="question-text">${item.question}</span></span>
+            </span>
+          </legend>
+          <div class="options">
+            ${item.options.map((option, optionIndex) => `
+              <label class="option">
+                <input type="radio" name="q${index}" value="${optionIndex}">
+                <span>${option}</span>
+              </label>
+            `).join("")}
+          </div>
+        </fieldset>
+      `).join("");
+    }
+
+    function getAnsweredCount() {
+      return questions.reduce((total, _, index) => total + (form.querySelector(`input[name="q${index}"]:checked`) ? 1 : 0), 0);
+    }
+
+    function updateProgress() {
+      const answered = getAnsweredCount();
+      const percent = (answered / questions.length) * 100;
+      progressText.textContent = `${answered} din ${questions.length}`;
+      progressFill.style.width = `${percent}%`;
+      answeredCount.textContent = answered;
+      remainingCount.textContent = questions.length - answered;
+      status.textContent = "";
+    }
+
+    function diagnosticFor(score) {
+      if (score <= 4) {
+        return {
+          title: "Intuiția cotidiană a avut ultimul cuvânt",
+          text: "Răspunsurile tale arată cât de convingătoare pot fi exemplele apropiate, știrile memorabile și explicațiile de bun-simț. Acesta este un punct bun de pornire pentru a exersa observația sistematică, comparația și verificarea surselor."
+        };
+      }
+      if (score <= 8) {
+        return {
+          title: "Ai început să gândești ca un cercetător social",
+          text: "Ai anticipat mai multe regularități, dar unele rezultate au contrazis explicațiile intuitive. Următorul pas este să urmărești cum au fost măsurate conceptele, cine a fost inclus în studiu și ce comparație permite o concluzie cauzală."
+        };
+      }
+      return {
+        title: "Ai o imaginație sociologică bine antrenată",
+        text: "Ai recunoscut diferența dintre impresie și regularitate, dintre asociere și cauzalitate și dintre nivelul individual și cel agregat. Păstrează aceeași prudență: chiar și un rezultat corect are limite de context și generalizare."
+      };
+    }
+
+    function submitQuiz(event) {
+      event.preventDefault();
+      document.querySelectorAll("fieldset.unanswered").forEach(el => el.classList.remove("unanswered"));
+
+      const unanswered = questions.map((_, index) => index).filter(index => !form.querySelector(`input[name="q${index}"]:checked`));
+      if (unanswered.length) {
+        unanswered.forEach(index => document.getElementById(`question-${index + 1}`).classList.add("unanswered"));
+        status.textContent = `Mai ai ${unanswered.length} ${unanswered.length === 1 ? "întrebare" : "întrebări"} fără răspuns.`;
+        document.getElementById(`question-${unanswered[0] + 1}`).scrollIntoView({ behavior: "smooth", block: "center" });
+        form.querySelector(`input[name="q${unanswered[0]}"]`).focus({ preventScroll: true });
+        return;
+      }
+
+      const choices = questions.map((_, index) => Number(form.querySelector(`input[name="q${index}"]:checked`).value));
+      const score = choices.reduce((total, choice, index) => total + (choice === questions[index].answer ? 1 : 0), 0);
+      const diagnostic = diagnosticFor(score);
+
+      document.getElementById("scoreValue").textContent = score;
+      document.getElementById("scoreRing").style.setProperty("--score-angle", `${(score / questions.length) * 360}deg`);
+      document.getElementById("diagnosticTitle").textContent = diagnostic.title;
+      document.getElementById("diagnosticText").textContent = diagnostic.text;
+
+      review.innerHTML = questions.map((item, index) => {
+        const correct = choices[index] === item.answer;
+        return `
+          <article class="explanation ${correct ? "correct" : "wrong"}">
+            <h3>${index + 1}. ${item.category} · ${correct ? "Corect" : "De revăzut"}</h3>
+            <p class="answer-line">Răspuns corect: ${item.options[item.answer]}</p>
+            <p>${item.explanation}</p>
+            <p class="source">Sursa: <a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.source}</a></p>
+          </article>
+        `;
+      }).join("");
+
+      results.hidden = false;
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function restartQuiz() {
+      form.reset();
+      results.hidden = true;
+      review.innerHTML = "";
+      document.querySelectorAll("fieldset.unanswered").forEach(el => el.classList.remove("unanswered"));
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    renderQuestions();
+    form.addEventListener("change", updateProgress);
+    form.addEventListener("submit", submitQuiz);
+    document.getElementById("restartButton").addEventListener("click", restartQuiz);
+    updateProgress();
+  </script>
+</body>
+</html>
