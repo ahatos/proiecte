@@ -1,7 +1,8 @@
+
 "use strict";
 
 // După publicarea scriptului Google Apps Script, lipește URL-ul /exec între ghilimele.
-const API_URL = "";
+const API_URL = "https://script.google.com/macros/s/AKfycbyTITJ-6v3VYhwtajFbcmNCl3fq3sCNbvUNk83RIgV8Rg2FuQun5GbstbMsrdn09yKd/exec";
 const LOCAL_STORAGE_KEY = "chestionar-anul-1-demo-responses";
 
 const scales = {
