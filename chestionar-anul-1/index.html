@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Chestionar anual pentru studenții din anul întâi și dashboard cu distribuția răspunsurilor.">
+  <title>Chestionar pentru studenții din anul întâi</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2313385b'/%3E%3Cpath d='M17 18h30v7H17zm0 13h20v7H17zm0 13h25v7H17z' fill='%23fff'/%3E%3Ccircle cx='47' cy='35' r='8' fill='%23e6ad42'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#chestionar" aria-label="Pagina chestionarului">
+      <span class="brand-mark" aria-hidden="true">UO</span>
+      <span><strong>Studenți în anul întâi</strong><small>Chestionar anual</small></span>
+    </a>
+    <nav class="view-tabs" aria-label="Secțiunile aplicației">
+      <a href="#chestionar" data-view-link="survey">Chestionar</a>
+      <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="surveyView" class="view" aria-labelledby="surveyTitle">
+      <div class="intro-grid">
+        <div>
+          <p class="eyebrow">Primul curs · <span data-cohort-label></span></p>
+          <h1 id="surveyTitle">Despre alegerea facultății și a specializării</h1>
+          <p class="lead">Chestionarul urmărește motivațiile și așteptările studenților din anul întâi. Răspunsurile sunt anonime și vor fi analizate numai împreună cu răspunsurile colegilor.</p>
+        </div>
+        <div class="intro-meta">
+          <div><span>Durată estimată</span><strong>7–10 minute</strong></div>
+          <div><span>Întrebări</span><strong>S1–S10 + 2 demografice</strong></div>
+          <div><span>Înregistrare</span><strong>Dată și oră automate</strong></div>
+        </div>
+      </div>
+
+      <div id="storageNotice" class="notice" hidden></div>
+
+      <div id="surveyPanel" class="survey-layout">
+        <form id="surveyForm" class="survey-form" novalidate>
+          <div id="questions"></div>
+          <div class="submit-panel">
+            <label class="consent">
+              <input type="checkbox" name="consent" required>
+              <span>Sunt de acord ca răspunsurile mele anonime să fie folosite pentru analiza colectivă a studenților din anul întâi.</span>
+            </label>
+            <div class="submit-row">
+              <p id="formStatus" class="form-status" role="alert"></p>
+              <button class="button primary" type="submit" id="submitButton">Trimite răspunsurile</button>
+            </div>
+          </div>
+          <label class="honeypot" aria-hidden="true">Nu completa acest câmp<input name="website" tabindex="-1" autocomplete="off"></label>
+        </form>
+
+        <aside class="progress-card" aria-label="Progresul completării">
+          <span>Progres</span>
+          <strong id="progressLabel">0%</strong>
+          <div class="progress-track" aria-hidden="true"><div id="progressBar"></div></div>
+          <p id="progressDetail">Începe cu prima întrebare.</p>
+        </aside>
+      </div>
+
+      <section id="successPanel" class="success-panel" hidden aria-live="polite">
+        <span class="success-icon" aria-hidden="true">✓</span>
+        <p class="eyebrow">Răspuns înregistrat</p>
+        <h2>Mulțumim pentru participare</h2>
+        <p id="successTimestamp"></p>
+        <button type="button" class="button secondary" id="newResponseButton">Completează un răspuns nou</button>
+      </section>
+    </section>
+
+    <section id="dashboardView" class="view dashboard-view" hidden aria-labelledby="dashboardTitle">
+      <div class="dashboard-head">
+        <div>
+          <p class="eyebrow">Rezultate agregate</p>
+          <h1 id="dashboardTitle">Distribuția răspunsurilor</h1>
+          <p class="lead">Selectează anul și indicatorul pe care vrei să îl analizezi. Dashboardul afișează numai totaluri, nu răspunsuri individuale.</p>
+        </div>
+        <button type="button" class="button secondary" id="refreshDashboard">Actualizează datele</button>
+      </div>
+
+      <div id="dashboardLogin" class="dashboard-login">
+        <div>
+          <h2>Acces la dashboard</h2>
+          <p>Introdu cheia stabilită în Google Apps Script. Cheia nu este salvată în browser.</p>
+        </div>
+        <form id="dashboardLoginForm">
+          <label for="dashboardKey">Cheie de acces</label>
+          <div class="inline-input">
+            <input id="dashboardKey" type="password" autocomplete="current-password" placeholder="Cheia dashboardului">
+            <button class="button primary" type="submit">Încarcă rezultatele</button>
+          </div>
+          <p class="form-status" id="dashboardLoginStatus" role="alert"></p>
+        </form>
+      </div>
+
+      <div id="dashboardContent" hidden>
+        <div class="stats-grid">
+          <article class="stat-card"><span>Răspunsuri afișate</span><strong id="responseCount">0</strong><small id="responseScope">Toți anii</small></article>
+          <article class="stat-card"><span>Cea mai recentă completare</span><strong id="latestResponse">—</strong><small>data serverului</small></article>
+          <article class="stat-card"><span>Cohorte înregistrate</span><strong id="cohortCount">0</strong><small>ani universitari</small></article>
+        </div>
+
+        <div class="dashboard-controls">
+          <label>An universitar
+            <select id="cohortFilter"><option value="">Toți anii</option></select>
+          </label>
+          <label>Întrebare sau afirmație
+            <select id="variableFilter"></select>
+          </label>
+        </div>
+
+        <article class="chart-card">
+          <div class="chart-heading">
+            <div>
+              <p class="eyebrow" id="chartCode">S1</p>
+              <h2 id="chartTitle">Specializarea</h2>
+            </div>
+            <span id="chartN">N = 0</span>
+          </div>
+          <div id="barChart" class="bar-chart" role="img" aria-label="Distribuția răspunsurilor"></div>
+          <p id="chartEmpty" class="empty-state" hidden>Nu există răspunsuri pentru selecția curentă.</p>
+        </article>
+
+        <article class="cohort-card">
+          <h2>Răspunsuri pe ani universitari</h2>
+          <div id="cohortTable"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Universitatea din Oradea</span>
+    <span>Răspunsurile nu includ numele sau adresa de e-mail.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
